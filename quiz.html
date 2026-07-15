@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#faf7f2">
+<title>中国語 単語クイズ</title>
+<style>
+:root{--bg:#faf7f2;--card:#ffffff;--ink:#222;--sub:#8a8378;--accent:#8a1f1f;
+      --ok:#2e7d32;--ng:#b93c3c;--line:#e5ddd0;}
+@media(prefers-color-scheme:dark){
+ :root{--bg:#161412;--card:#232019;--ink:#ece7de;--sub:#948c7e;--line:#3a352c;}
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--ink);touch-action:manipulation;
+     user-select:none;-webkit-user-select:none;
+     font-family:"Hiragino Sans","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif;}
+#app{height:100%;display:flex;flex-direction:column;}
+header{display:flex;align-items:center;justify-content:space-between;
+       padding:10px 14px;flex:0 0 auto;}
+#stats{font-size:13px;color:var(--sub);letter-spacing:.02em;}
+#modeBadge{font-size:11px;color:var(--accent);border:1px solid var(--accent);
+           border-radius:99px;padding:2px 10px;margin-left:8px;}
+#gear{font-size:22px;background:none;border:none;color:var(--sub);padding:4px 8px;}
+main{flex:1 1 auto;position:relative;overflow:hidden;}
+.screen{position:absolute;inset:0;display:none;}
+.screen.show{display:flex;}
+
+/* 問題画面 */
+#qScreen{flex-direction:column;align-items:center;justify-content:center;
+         padding:20px 16px 60px;text-align:center;}
+#qText{font-weight:700;line-height:1.25;word-break:break-word;max-width:100%;}
+#qHint{position:absolute;bottom:18px;left:0;right:0;text-align:center;
+       font-size:12px;color:var(--sub);}
+#qKind{font-size:12px;color:var(--sub);margin-bottom:14px;letter-spacing:.1em;}
+
+/* 答え画面 */
+#aScreen{flex-direction:column;}
+#aContent{flex:1;display:flex;flex-direction:column;align-items:center;
+          justify-content:center;text-align:center;padding:12px 8px;
+          pointer-events:none;z-index:2;}
+#aZh{font-weight:700;line-height:1.1;word-break:keep-all;}
+#aNote{font-size:15px;color:var(--sub);margin-top:6px;}
+#aPy{font-size:clamp(18px,6vw,28px);color:var(--accent);margin-top:10px;font-weight:600;}
+#aJa{font-size:clamp(13px,4vw,17px);color:var(--sub);margin-top:10px;padding:0 12px;}
+#aStreak{font-size:12px;color:var(--sub);margin-top:14px;letter-spacing:.3em;}
+#zones{position:absolute;inset:0;display:flex;z-index:1;}
+.zone{flex:1;display:flex;align-items:flex-end;justify-content:center;
+      padding-bottom:26px;font-size:44px;font-weight:700;opacity:0;
+      transition:opacity .25s;}
+#zoneNg{color:var(--ng);background:linear-gradient(to right,rgba(185,60,60,.10),transparent);}
+#zoneOk{color:var(--ok);background:linear-gradient(to left,rgba(46,125,50,.12),transparent);}
+#zones.armed .zone{opacity:.9;}
+
+/* 完了画面 */
+#doneScreen{flex-direction:column;align-items:center;justify-content:center;gap:18px;
+            text-align:center;padding:24px;}
+#doneScreen h2{font-size:26px;}
+#doneScreen p{color:var(--sub);font-size:14px;line-height:1.8;}
+
+/* 設定 */
+#settings{position:absolute;inset:0;background:var(--bg);z-index:10;display:none;
+          overflow-y:auto;padding:18px 18px 40px;}
+#settings.show{display:block;}
+#settings h2{font-size:16px;margin:18px 0 10px;color:var(--accent);}
+#settings h2:first-child{margin-top:4px;}
+.segwrap{display:flex;gap:8px;}
+.seg{flex:1;padding:12px 8px;border:1.5px solid var(--line);border-radius:12px;
+     background:var(--card);color:var(--ink);font-size:13px;text-align:center;}
+.seg.on{border-color:var(--accent);color:var(--accent);font-weight:700;}
+#lessonGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.lesson{padding:12px 0;border:1.5px solid var(--line);border-radius:12px;
+        background:var(--card);text-align:center;font-size:14px;color:var(--ink);}
+.lesson.on{border-color:var(--accent);color:var(--accent);font-weight:700;}
+.lesson small{display:block;font-size:10px;color:var(--sub);margin-top:2px;}
+.rowbtns{display:flex;gap:8px;margin-top:8px;}
+.mini{flex:1;padding:10px;border:1.5px solid var(--line);border-radius:12px;
+      background:var(--card);color:var(--ink);font-size:13px;}
+#resetBtn{width:100%;margin-top:6px;padding:12px;border:1.5px solid var(--ng);
+          border-radius:12px;background:none;color:var(--ng);font-size:14px;}
+#closeBtn{width:100%;margin-top:22px;padding:15px;border:none;border-radius:14px;
+          background:var(--accent);color:#fff;font-size:16px;font-weight:700;}
+button{font-family:inherit;}
+</style>
+</head>
+<body>
+<div id="app">
+ <header>
+  <div id="stats">残り <b id="remain">-</b> / 全 <b id="total">-</b> 語<span id="modeBadge"></span></div>
+  <button id="gear" aria-label="設定">⚙</button>
+ </header>
+ <main>
+  <div id="qScreen" class="screen">
+   <div id="qKind"></div>
+   <div id="qText"></div>
+   <div id="qHint">紙に書いたら画面をタップ</div>
+  </div>
+  <div id="aScreen" class="screen">
+   <div id="zones">
+    <div class="zone" id="zoneNg">✗</div>
+    <div class="zone" id="zoneOk">◯</div>
+   </div>
+   <div id="aContent">
+    <div id="aZh"></div>
+    <div id="aNote"></div>
+    <div id="aPy"></div>
+    <div id="aJa"></div>
+    <div id="aStreak"></div>
+   </div>
+  </div>
+  <div id="doneScreen" class="screen">
+   <h2>🎉 全部クリア！</h2>
+   <p>選択中の範囲の全単語が streak 3 に到達しました。<br>
+      設定から課を増やすか、進捗をリセットして<br>もう一周しましょう。</p>
+   <button class="mini" style="max-width:220px" onclick="openSettings()">設定を開く</button>
+  </div>
+  <div id="settings">
+   <h2>出題モード</h2>
+   <div class="segwrap">
+    <button class="seg" id="segA">日本語 → 中国語＋ピンイン</button>
+    <button class="seg" id="segB">ピンイン → 簡体字</button>
+   </div>
+   <h2>出題する課</h2>
+   <div id="lessonGrid"></div>
+   <div class="rowbtns">
+    <button class="mini" id="selAll">全選択</button>
+    <button class="mini" id="selNone">全解除</button>
+   </div>
+   <h2>進捗</h2>
+   <button id="resetBtn">このモードの進捗をリセット</button>
+   <button id="closeBtn">閉じる</button>
+  </div>
+ </main>
+</div>
+<script>
+const WORDS = [{"l":1,"zh":"这","py":"zhè","ja":"これ"},{"l":1,"zh":"是","py":"shì","ja":"〜である"},{"l":1,"zh":"你","py":"nǐ","ja":"あなた"},{"l":1,"zh":"的","py":"de","ja":"〜の"},{"l":1,"zh":"书","py":"shū","ja":"本"},{"l":1,"zh":"吗","py":"ma","ja":"〜か（疑問の助詞）"},{"l":1,"zh":"你好","py":"nǐ hǎo","ja":"こんにちは"},{"l":1,"zh":"我","py":"wǒ","ja":"わたし"},{"l":1,"zh":"看","py":"kàn","ja":"見る、読む"},{"l":1,"zh":"汉语","py":"Hànyǔ","ja":"中国語"},{"l":1,"zh":"课本","py":"kèběn","ja":"教科書"},{"l":1,"zh":"留学生","py":"liúxuéshēng","ja":"留学生"},{"l":1,"zh":"对〔形〕","py":"duì","ja":"正しい、その通り"},{"l":1,"zh":"日本","py":"Rìběn","ja":"日本"},{"l":1,"zh":"叫","py":"jiào","ja":"（名前は）〜という"},{"l":1,"zh":"方〔姓〕","py":"Fāng","ja":"方（姓）"},{"l":1,"zh":"姓","py":"xìng","ja":"姓は〜という"},{"l":1,"zh":"速成","py":"sùchéng","ja":"速成、短期集中"},{"l":1,"zh":"学院","py":"xuéyuàn","ja":"学院、単科大学"},{"l":1,"zh":"一","py":"yī","ja":"一"},{"l":1,"zh":"年级","py":"niánjí","ja":"学年"},{"l":1,"zh":"学生","py":"xuésheng","ja":"学生"},{"l":1,"zh":"对外","py":"duìwài","ja":"対外の"},{"l":1,"zh":"系","py":"xì","ja":"学部、学科"},{"l":1,"zh":"今后","py":"jīnhòu","ja":"今後"},{"l":1,"zh":"请","py":"qǐng","ja":"どうぞ〜してください"},{"l":1,"zh":"多〔副〕","py":"duō","ja":"多く"},{"l":1,"zh":"指教","py":"zhǐjiào","ja":"教える、指導する"},{"l":1,"zh":"也","py":"yě","ja":"〜も"},{"l":1,"zh":"您","py":"nín","ja":"あなた（敬語）"},{"l":1,"zh":"他","py":"tā","ja":"彼"},{"l":1,"zh":"她","py":"tā","ja":"彼女"},{"l":1,"zh":"它","py":"tā","ja":"それ（人間以外）"},{"l":1,"zh":"我们","py":"wǒmen","ja":"わたしたち（聞き手を含まない）"},{"l":1,"zh":"咱们","py":"zánmen","ja":"わたしたち（聞き手を含む）"},{"l":1,"zh":"你们","py":"nǐmen","ja":"あなたたち"},{"l":1,"zh":"他们","py":"tāmen","ja":"彼ら"},{"l":1,"zh":"她们","py":"tāmen","ja":"彼女ら"},{"l":1,"zh":"它们","py":"tāmen","ja":"それら"},{"l":1,"zh":"不","py":"bù","ja":"〜ない（否定）"},{"l":1,"zh":"顾客","py":"gùkè","ja":"客、顧客"},{"l":1,"zh":"服务员","py":"fúwùyuán","ja":"従業員、店員"},{"l":1,"zh":"美国人","py":"Měiguórén","ja":"アメリカ人"},{"l":1,"zh":"黄〔姓〕","py":"Huáng","ja":"黄（姓）"},{"l":1,"zh":"王〔姓〕","py":"Wáng","ja":"王（姓）"},{"l":1,"zh":"小〔接頭辞〕","py":"xiǎo","ja":"（親しみを込めて名前の前に付ける）"},{"l":1,"zh":"张〔姓〕","py":"Zhāng","ja":"張（姓）"},{"l":1,"zh":"学习","py":"xuéxí","ja":"学ぶ、勉強する"},{"l":1,"zh":"物理","py":"wùlǐ","ja":"物理"},{"l":1,"zh":"每天","py":"měitiān","ja":"毎日"},{"l":1,"zh":"打（〜太极拳）","py":"dǎ","ja":"（太極拳を）する"},{"l":1,"zh":"太极拳","py":"tàijíquán","ja":"太極拳"},{"l":1,"zh":"香草茶","py":"xiāngcǎochá","ja":"ハーブティー"},{"l":1,"zh":"水仙","py":"shuǐxiān","ja":"水仙"},{"l":1,"zh":"韭菜","py":"jiǔcài","ja":"ニラ"},{"l":1,"zh":"大阪","py":"Dàbǎn","ja":"大阪"},{"l":1,"zh":"车站","py":"chēzhàn","ja":"駅"},{"l":1,"zh":"梅田","py":"Méitián","ja":"梅田"},{"l":1,"zh":"这","py":"zhè","ja":"これ（近称）"},{"l":1,"zh":"那","py":"nà","ja":"あれ（遠称）"},{"l":1,"zh":"哪","py":"nǎ","ja":"どれ（疑問）"},{"l":1,"zh":"这个","py":"zhège","ja":"これ"},{"l":1,"zh":"那个","py":"nàge","ja":"あれ"},{"l":1,"zh":"哪个","py":"nǎge","ja":"どれ"},{"l":1,"zh":"月饼","py":"yuèbing","ja":"月餅"},{"l":1,"zh":"在〔動〕","py":"zài","ja":"（〜に）ある、いる"},{"l":1,"zh":"学校","py":"xuéxiào","ja":"学校"},{"l":1,"zh":"买","py":"mǎi","ja":"買う"},{"l":1,"zh":"手表","py":"shǒubiǎo","ja":"腕時計"},{"l":1,"zh":"电脑","py":"diànnǎo","ja":"パソコン"},{"l":1,"zh":"图书馆","py":"túshūguǎn","ja":"図書館"},{"l":1,"zh":"博物馆","py":"bówùguǎn","ja":"博物館"},{"l":1,"zh":"展品","py":"zhǎnpǐn","ja":"展示品"},{"l":1,"zh":"公司","py":"gōngsī","ja":"会社"},{"l":1,"zh":"妈妈","py":"māma","ja":"お母さん"},{"l":1,"zh":"朋友","py":"péngyou","ja":"友達"},{"l":1,"zh":"木头","py":"mùtou","ja":"木材"},{"l":1,"zh":"箱子","py":"xiāngzi","ja":"箱"},{"l":1,"zh":"亚麻","py":"yàmá","ja":"亜麻、リネン"},{"l":1,"zh":"衬衫","py":"chènshān","ja":"シャツ"},{"l":1,"zh":"学者","py":"xuézhě","ja":"学者"},{"l":1,"zh":"越南","py":"Yuènán","ja":"ベトナム"},{"l":1,"zh":"同学","py":"tóngxué","ja":"同級生、クラスメート"},{"l":1,"zh":"广东人","py":"Guǎngdōngrén","ja":"広東人"},{"l":1,"zh":"福建人","py":"Fújiànrén","ja":"福建人"},{"l":1,"zh":"中国","py":"Zhōngguó","ja":"中国"},{"l":1,"zh":"韩国","py":"Hánguó","ja":"韓国"},{"l":1,"zh":"参加","py":"cānjiā","ja":"参加する"},{"l":1,"zh":"明天","py":"míngtiān","ja":"明日"},{"l":1,"zh":"迎新","py":"yíngxīn","ja":"新入生歓迎"},{"l":1,"zh":"晚会","py":"wǎnhuì","ja":"夜のパーティー、集い"},{"l":1,"zh":"陈〔姓〕","py":"Chén","ja":"陳（姓）"},{"l":1,"zh":"独生","py":"dúshēng","ja":"一人っ子の"},{"l":1,"zh":"子女","py":"zǐnǚ","ja":"子女、子供"},{"l":1,"zh":"李〔姓〕","py":"Lǐ","ja":"李（姓）"},{"l":1,"zh":"鲁迅","py":"Lǔ Xùn","ja":"魯迅（人名）"},{"l":1,"zh":"文学家","py":"wénxuéjiā","ja":"文学者"},{"l":1,"zh":"思想家","py":"sīxiǎngjiā","ja":"思想家"},{"l":1,"zh":"教","py":"jiāo","ja":"教える"},{"l":1,"zh":"英语","py":"Yīngyǔ","ja":"英語"},{"l":1,"zh":"喜欢","py":"xǐhuan","ja":"好きである"},{"l":1,"zh":"零","py":"líng","ja":"0"},{"l":1,"zh":"一","py":"yī","ja":"1"},{"l":1,"zh":"二","py":"èr","ja":"2"},{"l":1,"zh":"三","py":"sān","ja":"3"},{"l":1,"zh":"四","py":"sì","ja":"4"},{"l":1,"zh":"五","py":"wǔ","ja":"5"},{"l":1,"zh":"六","py":"liù","ja":"6"},{"l":1,"zh":"七","py":"qī","ja":"7"},{"l":1,"zh":"八","py":"bā","ja":"8"},{"l":1,"zh":"九","py":"jiǔ","ja":"9"},{"l":1,"zh":"十","py":"shí","ja":"10"},{"l":1,"zh":"爷爷","py":"yéye","ja":"父方の祖父"},{"l":1,"zh":"奶奶","py":"nǎinai","ja":"父方の祖母"},{"l":1,"zh":"姥爷","py":"lǎoye","ja":"母方の祖父"},{"l":1,"zh":"姥姥","py":"lǎolao","ja":"母方の祖母"},{"l":1,"zh":"姑姑","py":"gūgu","ja":"おば（父の姉妹）"},{"l":1,"zh":"叔叔","py":"shūshu","ja":"おじ（父の弟）"},{"l":1,"zh":"伯伯","py":"bóbo","ja":"おじ（父の兄）"},{"l":1,"zh":"爸爸","py":"bàba","ja":"お父さん"},{"l":1,"zh":"姨妈（姨）","py":"yímā (yí)","ja":"おば（母の姉妹）"},{"l":1,"zh":"舅舅","py":"jiùjiu","ja":"おじ（母の兄弟）"},{"l":1,"zh":"妹妹","py":"mèimei","ja":"妹"},{"l":1,"zh":"姐姐","py":"jiějie","ja":"姉"},{"l":1,"zh":"弟弟","py":"dìdi","ja":"弟"},{"l":1,"zh":"哥哥","py":"gēge","ja":"兄"},{"l":1,"zh":"爱人","py":"àiren","ja":"配偶者（夫または妻）"},{"l":1,"zh":"丈夫","py":"zhàngfu","ja":"夫"},{"l":1,"zh":"妻子","py":"qīzi","ja":"妻"},{"l":1,"zh":"儿子","py":"érzi","ja":"息子"},{"l":1,"zh":"女儿","py":"nǚ'ér","ja":"娘"},{"l":1,"zh":"姑娘","py":"gūniang","ja":"娘、若い女性"},{"l":1,"zh":"美女","py":"měinǚ","ja":"美女"},{"l":1,"zh":"帅哥","py":"shuàigē","ja":"イケメン"},{"l":1,"zh":"孩子","py":"háizi","ja":"子供"},{"l":1,"zh":"奶酪","py":"nǎilào","ja":"チーズ"},{"l":1,"zh":"牛奶","py":"niúnǎi","ja":"牛乳"},{"l":2,"zh":"校区","py":"xiàoqū","ja":"キャンパス"},{"l":2,"zh":"有","py":"yǒu","ja":"ある、いる、持っている"},{"l":2,"zh":"演奏会","py":"yǎnzòuhuì","ja":"演奏会、コンサート"},{"l":2,"zh":"演讲","py":"yǎnjiǎng","ja":"演説、スピーチ"},{"l":2,"zh":"比赛","py":"bǐsài","ja":"試合、コンテスト"},{"l":2,"zh":"早上","py":"zǎoshang","ja":"朝"},{"l":2,"zh":"位","py":"wèi","ja":"〜名、〜方（人を敬って数える量詞）"},{"l":2,"zh":"早〔挨拶語〕","py":"zǎo","ja":"おはよう"},{"l":2,"zh":"杨〔姓〕","py":"Yáng","ja":"楊（姓）"},{"l":2,"zh":"初次","py":"chūcì","ja":"初めて、初回"},{"l":2,"zh":"见面","py":"jiàn//miàn","ja":"会う、対面する"},{"l":2,"zh":"关照","py":"guānzhào","ja":"世話をする、面倒を見る"},{"l":2,"zh":"想〔助動〕","py":"xiǎng","ja":"〜したい"},{"l":2,"zh":"听","py":"tīng","ja":"聞く、聴く"},{"l":2,"zh":"什么","py":"shénme","ja":"何、どんな"},{"l":2,"zh":"时候","py":"shíhou","ja":"時、時刻"},{"l":2,"zh":"网","py":"wǎng","ja":"ネット、網"},{"l":2,"zh":"通知","py":"tōngzhī","ja":"通知、知らせ"},{"l":2,"zh":"号〔量〕","py":"hào","ja":"〜日（日付）"},{"l":2,"zh":"晚上","py":"wǎnshang","ja":"夜、晩"},{"l":2,"zh":"点〔量〕","py":"diǎn","ja":"〜時"},{"l":2,"zh":"半","py":"bàn","ja":"半、30分"},{"l":2,"zh":"开始","py":"kāishǐ","ja":"始まる、始める"},{"l":2,"zh":"星期","py":"xīngqī","ja":"曜日、週"},{"l":2,"zh":"家","py":"jiā","ja":"家、家庭"},{"l":2,"zh":"事","py":"shì","ja":"事、用事"},{"l":2,"zh":"周","py":"zhōu","ja":"週"},{"l":2,"zh":"时间","py":"shíjiān","ja":"時間"},{"l":2,"zh":"目前","py":"mùqián","ja":"現在、今のところ"},{"l":2,"zh":"没有","py":"méiyǒu","ja":"ない、持っていない（\"有\"の否定）"},{"l":2,"zh":"安排","py":"ānpái","ja":"予定、手配、段取り"},{"l":2,"zh":"那〔接続〕","py":"nà","ja":"それでは、それなら"},{"l":2,"zh":"正好","py":"zhènghǎo","ja":"ちょうどよい、折よく"},{"l":2,"zh":"俩","py":"liǎ","ja":"二人、二つ"},{"l":2,"zh":"一起〔副〕","py":"yìqǐ","ja":"一緒に"},{"l":2,"zh":"去","py":"qù","ja":"行く"},{"l":2,"zh":"楼","py":"lóu","ja":"建物、階"},{"l":2,"zh":"复印机","py":"fùyìnjī","ja":"コピー機"},{"l":2,"zh":"大学","py":"dàxué","ja":"大学"},{"l":2,"zh":"医学院","py":"yīxuéyuàn","ja":"医学部、医学院"},{"l":2,"zh":"社团","py":"shètuán","ja":"サークル、団体"},{"l":2,"zh":"活动","py":"huódòng","ja":"活動、イベント"},{"l":2,"zh":"兄弟","py":"xiōngdì","ja":"兄弟"},{"l":2,"zh":"姐妹","py":"jiěmèi","ja":"姉妹"},{"l":2,"zh":"和","py":"hé","ja":"〜と（並列の接続詞）"},{"l":2,"zh":"西安","py":"Xī'ān","ja":"西安（地名）"},{"l":2,"zh":"洛阳","py":"Luòyáng","ja":"洛陽（地名）"},{"l":2,"zh":"古都","py":"gǔdū","ja":"古都"},{"l":2,"zh":"旅行","py":"lǚxíng","ja":"旅行（する）"},{"l":2,"zh":"漫画","py":"mànhuà","ja":"漫画"},{"l":2,"zh":"西游记","py":"Xīyóujì","ja":"『西遊記』"},{"l":2,"zh":"水浒传","py":"Shuǐhǔzhuàn","ja":"『水滸伝』"},{"l":2,"zh":"三国演义","py":"Sānguóyǎnyì","ja":"『三国演義』"},{"l":2,"zh":"红楼梦","py":"Hónglóumèng","ja":"『紅楼夢』"},{"l":2,"zh":"文学","py":"wénxué","ja":"文学"},{"l":2,"zh":"名著","py":"míngzhù","ja":"名著"},{"l":2,"zh":"洗手间","py":"xǐshǒujiān","ja":"トイレ、お手洗い"},{"l":2,"zh":"请假","py":"qǐng//jià","ja":"休暇を取る"},{"l":2,"zh":"上班","py":"shàng//bān","ja":"出勤する"},{"l":2,"zh":"大〔接頭辞〕","py":"dà","ja":"（親しみを込めて名前の前に付ける）"},{"l":2,"zh":"科幻","py":"kēhuàn","ja":"SF、サイエンスフィクション"},{"l":2,"zh":"作家","py":"zuòjiā","ja":"作家"},{"l":2,"zh":"谁","py":"shéi","ja":"誰"},{"l":2,"zh":"找","py":"zhǎo","ja":"探す、訪ねる"},{"l":2,"zh":"雨伞","py":"yǔsǎn","ja":"傘"},{"l":2,"zh":"吃","py":"chī","ja":"食べる"},{"l":2,"zh":"喝","py":"hē","ja":"飲む"},{"l":2,"zh":"饮料","py":"yǐnliào","ja":"飲み物"},{"l":2,"zh":"出发","py":"chūfā","ja":"出発する"},{"l":2,"zh":"昨天","py":"zuótiān","ja":"昨日"},{"l":2,"zh":"积雪","py":"jīxuě","ja":"積雪"},{"l":2,"zh":"厘米","py":"límǐ","ja":"センチメートル"},{"l":2,"zh":"现在","py":"xiànzài","ja":"今、現在"},{"l":2,"zh":"钟","py":"zhōng","ja":"時（〜点钟）、時計"},{"l":2,"zh":"分〔量〕","py":"fēn","ja":"〜分"},{"l":2,"zh":"两","py":"liǎng","ja":"2、二つの（量詞の前で使う\"2\"）"},{"l":2,"zh":"刻〔量〕","py":"kè","ja":"15分"},{"l":2,"zh":"几","py":"jǐ","ja":"いくつ（10未満を予想して尋ねる）"},{"l":2,"zh":"差〔動〕","py":"chà","ja":"足りない（差五分十点＝10時5分前）"},{"l":2,"zh":"零","py":"líng","ja":"ゼロ"},{"l":2,"zh":"大楼","py":"dàlóu","ja":"ビル"},{"l":2,"zh":"广场","py":"guǎngchǎng","ja":"広場"},{"l":2,"zh":"公园","py":"gōngyuán","ja":"公園"},{"l":2,"zh":"山","py":"shān","ja":"山"},{"l":2,"zh":"海","py":"hǎi","ja":"海"},{"l":2,"zh":"门旁","py":"ménpáng","ja":"門・ドアのそば"},{"l":2,"zh":"路旁","py":"lùpáng","ja":"道端"},{"l":2,"zh":"东","py":"dōng","ja":"東"},{"l":2,"zh":"南","py":"nán","ja":"南"},{"l":2,"zh":"西","py":"xī","ja":"西"},{"l":2,"zh":"北","py":"běi","ja":"北"},{"l":2,"zh":"左","py":"zuǒ","ja":"左"},{"l":2,"zh":"右","py":"yòu","ja":"右"},{"l":2,"zh":"上","py":"shàng","ja":"上"},{"l":2,"zh":"下","py":"xià","ja":"下"},{"l":2,"zh":"前","py":"qián","ja":"前"},{"l":2,"zh":"后","py":"hòu","ja":"後ろ"},{"l":2,"zh":"里","py":"lǐ","ja":"中"},{"l":2,"zh":"外","py":"wài","ja":"外"},{"l":2,"zh":"旁","py":"páng","ja":"そば"},{"l":2,"zh":"对","py":"duì","ja":"向かい"},{"l":2,"zh":"地板","py":"dìbǎn","ja":"床"},{"l":2,"zh":"水","py":"shuǐ","ja":"水"},{"l":2,"zh":"小心","py":"xiǎoxīn","ja":"気をつける、注意する"},{"l":2,"zh":"信箱","py":"xìnxiāng","ja":"郵便受け、ポスト"},{"l":2,"zh":"信","py":"xìn","ja":"手紙"},{"l":2,"zh":"今天","py":"jīntiān","ja":"今日"},{"l":2,"zh":"小朋友","py":"xiǎopéngyou","ja":"子ども"},{"l":2,"zh":"岁","py":"suì","ja":"〜歳"},{"l":2,"zh":"要〔動〕","py":"yào","ja":"欲しい、要る"},{"l":2,"zh":"啤酒","py":"píjiǔ","ja":"ビール"},{"l":2,"zh":"瓶","py":"píng","ja":"〜本（瓶を数える量詞）"},{"l":2,"zh":"第","py":"dì","ja":"第〜（序数を作る接頭辞）"},{"l":2,"zh":"页","py":"yè","ja":"ページ"},{"l":2,"zh":"星期一","py":"xīngqī yī","ja":"月曜日"},{"l":2,"zh":"星期二","py":"xīngqī èr","ja":"火曜日"},{"l":2,"zh":"星期三","py":"xīngqī sān","ja":"水曜日"},{"l":2,"zh":"星期四","py":"xīngqī sì","ja":"木曜日"},{"l":2,"zh":"星期五","py":"xīngqī wǔ","ja":"金曜日"},{"l":2,"zh":"星期六","py":"xīngqī liù","ja":"土曜日"},{"l":2,"zh":"星期天","py":"xīngqī tiān","ja":"日曜日"},{"l":2,"zh":"月","py":"yuè","ja":"〜月"},{"l":2,"zh":"号","py":"hào","ja":"〜日（話し言葉）"},{"l":2,"zh":"日","py":"rì","ja":"〜日（書き言葉）"},{"l":2,"zh":"星期几","py":"xīngqī jǐ","ja":"何曜日"},{"l":2,"zh":"几月几号","py":"jǐ yuè jǐ hào","ja":"何月何日"},{"l":3,"zh":"喂","py":"wéi","ja":"もしもし（電話）"},{"l":3,"zh":"知道","py":"zhīdao","ja":"知っている、分かる"},{"l":3,"zh":"哪儿","py":"nǎr","ja":"どこ"},{"l":3,"zh":"坐","py":"zuò","ja":"乗る、座る"},{"l":3,"zh":"地铁","py":"dìtiě","ja":"地下鉄"},{"l":3,"zh":"好","py":"hǎo","ja":"よい；分かった、よろしい"},{"l":3,"zh":"等","py":"děng","ja":"待つ"},{"l":3,"zh":"演奏","py":"yǎnzòu","ja":"演奏する"},{"l":3,"zh":"人","py":"rén","ja":"人"},{"l":3,"zh":"呢","py":"ne","ja":"〜は？（文末助詞・省略疑問文）"},{"l":3,"zh":"不过","py":"búguò","ja":"しかし、ただし"},{"l":3,"zh":"其他","py":"qítā","ja":"ほかの、その他の"},{"l":3,"zh":"储物柜","py":"chǔwùguì","ja":"ロッカー"},{"l":3,"zh":"孙〔姓〕","py":"Sūn","ja":"孫（姓）"},{"l":3,"zh":"老师","py":"lǎoshī","ja":"先生"},{"l":3,"zh":"周〔姓〕","py":"Zhōu","ja":"周（姓）"},{"l":3,"zh":"电梯","py":"diàntī","ja":"エレベーター"},{"l":3,"zh":"老家","py":"lǎojiā","ja":"実家、故郷"},{"l":3,"zh":"以前","py":"yǐqián","ja":"以前、昔"},{"l":3,"zh":"感冒药","py":"gǎnmàoyào","ja":"風邪薬"},{"l":3,"zh":"笔记本","py":"bǐjìběn","ja":"ノート"},{"l":3,"zh":"拜访","py":"bàifǎng","ja":"訪問する"},{"l":3,"zh":"教授","py":"jiàoshòu","ja":"教授"},{"l":3,"zh":"胡〔姓〕","py":"Hú","ja":"胡（姓）"},{"l":3,"zh":"住","py":"zhù","ja":"住む、泊まる"},{"l":3,"zh":"发","py":"fā","ja":"出す、送る（メールなど）"},{"l":3,"zh":"邮件","py":"yóujiàn","ja":"メール"},{"l":3,"zh":"广播","py":"guǎngbō","ja":"放送、ラジオ"},{"l":3,"zh":"学","py":"xué","ja":"学ぶ、勉強する"},{"l":3,"zh":"属","py":"shǔ","ja":"干支が〜である"},{"l":3,"zh":"猪","py":"zhū","ja":"豚；亥（いのしし）年"},{"l":3,"zh":"耳机","py":"ěrjī","ja":"イヤホン、ヘッドホン"},{"l":3,"zh":"戴","py":"dài","ja":"身につける、（眼鏡を）かける"},{"l":3,"zh":"眼镜","py":"yǎnjìng","ja":"眼鏡"},{"l":3,"zh":"女孩子","py":"nǚháizi","ja":"女の子"},{"l":3,"zh":"表妹","py":"biǎomèi","ja":"（年下の）いとこ（女性）"},{"l":3,"zh":"做","py":"zuò","ja":"する、作る"},{"l":3,"zh":"建筑","py":"jiànzhù","ja":"建築"},{"l":3,"zh":"模型","py":"móxíng","ja":"模型、モデル"},{"l":3,"zh":"厨房","py":"chúfáng","ja":"台所、キッチン"},{"l":3,"zh":"烤","py":"kǎo","ja":"焼く、あぶる"},{"l":3,"zh":"秋刀鱼","py":"qiūdāoyú","ja":"サンマ"},{"l":3,"zh":"味道","py":"wèidao","ja":"味、におい"},{"l":3,"zh":"周末","py":"zhōumò","ja":"週末"},{"l":3,"zh":"香山","py":"Xiāngshān","ja":"香山（北京の山の名）"},{"l":3,"zh":"唱","py":"chàng","ja":"歌う"},{"l":3,"zh":"卡拉OK","py":"kǎlā OK","ja":"カラオケ"},{"l":3,"zh":"怎么样","py":"zěnmeyàng","ja":"どうですか"},{"l":3,"zh":"棒球","py":"bàngqiú","ja":"野球"},{"l":3,"zh":"北京","py":"Běijīng","ja":"北京"},{"l":3,"zh":"旅游","py":"lǚyóu","ja":"旅行する、観光する"},{"l":3,"zh":"会议","py":"huìyì","ja":"会議"},{"l":3,"zh":"节目","py":"jiémù","ja":"番組"},{"l":3,"zh":"大前天","py":"dàqiántiān","ja":"さきおととい"},{"l":3,"zh":"前天","py":"qiántiān","ja":"おととい"},{"l":3,"zh":"后天","py":"hòutiān","ja":"あさって"},{"l":3,"zh":"大后天","py":"dàhòutiān","ja":"しあさって"},{"l":3,"zh":"上上（个）星期","py":"shàngshàng (ge) xīngqī","ja":"先々週"},{"l":3,"zh":"上（个）星期","py":"shàng (ge) xīngqī","ja":"先週"},{"l":3,"zh":"这（个）星期","py":"zhè (ge) xīngqī","ja":"今週"},{"l":3,"zh":"下（个）星期","py":"xià (ge) xīngqī","ja":"来週"},{"l":3,"zh":"下下（个）星期","py":"xiàxià (ge) xīngqī","ja":"再来週"},{"l":3,"zh":"上上（个）月","py":"shàngshàng (ge) yuè","ja":"先々月"},{"l":3,"zh":"上（个）月","py":"shàng (ge) yuè","ja":"先月"},{"l":3,"zh":"这（个）月","py":"zhè (ge) yuè","ja":"今月"},{"l":3,"zh":"下（个）月","py":"xià (ge) yuè","ja":"来月"},{"l":3,"zh":"下下（个）月","py":"xiàxià (ge) yuè","ja":"再来月"},{"l":3,"zh":"大前年","py":"dàqiánnián","ja":"さきおととし"},{"l":3,"zh":"前年","py":"qiánnián","ja":"おととし"},{"l":3,"zh":"去年","py":"qùnián","ja":"去年"},{"l":3,"zh":"今年","py":"jīnnián","ja":"今年"},{"l":3,"zh":"明年","py":"míngnián","ja":"来年"},{"l":3,"zh":"后年","py":"hòunián","ja":"再来年"},{"l":3,"zh":"大后年","py":"dàhòunián","ja":"再々来年"},{"l":3,"zh":"上午","py":"shàngwǔ","ja":"午前"},{"l":3,"zh":"中午","py":"zhōngwǔ","ja":"正午、昼"},{"l":3,"zh":"下午","py":"xiàwǔ","ja":"午後"},{"l":3,"zh":"晚上","py":"wǎnshang","ja":"夜"},{"l":3,"zh":"夜里","py":"yèli","ja":"夜中"},{"l":3,"zh":"白天","py":"báitiān","ja":"昼間"},{"l":4,"zh":"申请","py":"shēnqǐng","ja":"申請する、出願する"},{"l":4,"zh":"所〔量〕","py":"suǒ","ja":"〜校、〜軒（学校・機関を数える量詞）"},{"l":4,"zh":"有名","py":"yǒumíng","ja":"有名である"},{"l":4,"zh":"很","py":"hěn","ja":"とても"},{"l":4,"zh":"最","py":"zuì","ja":"最も"},{"l":4,"zh":"上〔動〕","py":"shàng","ja":"（学校に）行く、進学する"},{"l":4,"zh":"强项","py":"qiángxiàng","ja":"強み、得意分野"},{"l":4,"zh":"好〔形〕","py":"hǎo","ja":"よい"},{"l":4,"zh":"高考","py":"gāokǎo","ja":"高考（中国の大学入試）"},{"l":4,"zh":"分数","py":"fēnshù","ja":"点数"},{"l":4,"zh":"高","py":"gāo","ja":"高い"},{"l":4,"zh":"选择","py":"xuǎnzé","ja":"選択（する）"},{"l":4,"zh":"多〔形〕","py":"duō","ja":"多い"},{"l":4,"zh":"对了","py":"duìle","ja":"そういえば、ところで"},{"l":4,"zh":"短期","py":"duǎnqī","ja":"短期"},{"l":4,"zh":"留学","py":"liú//xué","ja":"留学する"},{"l":4,"zh":"项目","py":"xiàngmù","ja":"プログラム、プロジェクト"},{"l":4,"zh":"年","py":"nián","ja":"年、〜年間"},{"l":4,"zh":"真〔副〕","py":"zhēn","ja":"本当に"},{"l":4,"zh":"厉害","py":"lìhai","ja":"すごい"},{"l":4,"zh":"没","py":"méi","ja":"〜していない（\"了\"の否定）"},{"l":4,"zh":"问","py":"wèn","ja":"尋ねる、聞く"},{"l":4,"zh":"头〔量〕","py":"tóu","ja":"〜頭（牛など大型動物を数える）"},{"l":4,"zh":"牛","py":"niú","ja":"牛"},{"l":4,"zh":"块〔量〕","py":"kuài","ja":"〜切れ、〜個（塊状のもの）"},{"l":4,"zh":"蛋糕","py":"dàngāo","ja":"ケーキ"},{"l":4,"zh":"条〔量〕","py":"tiáo","ja":"〜匹、〜本（細長いもの）"},{"l":4,"zh":"鱼","py":"yú","ja":"魚"},{"l":4,"zh":"片〔量〕","py":"piàn","ja":"〜枚（薄いもの）"},{"l":4,"zh":"面包","py":"miànbāo","ja":"パン"},{"l":4,"zh":"张〔量〕","py":"zhāng","ja":"〜枚（平らなもの）"},{"l":4,"zh":"纸","py":"zhǐ","ja":"紙"},{"l":4,"zh":"把〔量〕","py":"bǎ","ja":"〜本（柄のあるもの）"},{"l":4,"zh":"部〔量〕","py":"bù","ja":"〜本（映画などを数える）"},{"l":4,"zh":"电影","py":"diànyǐng","ja":"映画"},{"l":4,"zh":"发表","py":"fābiǎo","ja":"発表する"},{"l":4,"zh":"篇","py":"piān","ja":"〜篇（文章を数える）"},{"l":4,"zh":"论文","py":"lùnwén","ja":"論文"},{"l":4,"zh":"迪士尼乐园","py":"Díshìní Lèyuán","ja":"ディズニーランド"},{"l":4,"zh":"放假","py":"fàng//jià","ja":"休みになる"},{"l":4,"zh":"暑假","py":"shǔjià","ja":"夏休み"},{"l":4,"zh":"寒假","py":"hánjià","ja":"冬休み（手書きメモより）"},{"l":4,"zh":"上海","py":"Shànghǎi","ja":"上海"},{"l":4,"zh":"玩儿","py":"wán(r)","ja":"遊ぶ"},{"l":4,"zh":"挂号信","py":"guàhàoxìn","ja":"書留郵便"},{"l":4,"zh":"贵","py":"guì","ja":"（値段が）高い"},{"l":4,"zh":"平信","py":"píngxìn","ja":"普通郵便"},{"l":4,"zh":"便宜","py":"piányi","ja":"安い"},{"l":4,"zh":"兵马俑","py":"bīngmǎyǒng","ja":"兵馬俑"},{"l":4,"zh":"非常","py":"fēicháng","ja":"非常に"},{"l":4,"zh":"壮观","py":"zhuàngguān","ja":"壮観である"},{"l":4,"zh":"热","py":"rè","ja":"暑い、熱い"},{"l":4,"zh":"宽","py":"kuān","ja":"広い、幅がある"},{"l":4,"zh":"书桌","py":"shūzhuō","ja":"机、勉強机"},{"l":4,"zh":"窄","py":"zhǎi","ja":"狭い"},{"l":4,"zh":"成都","py":"Chéngdū","ja":"成都（地名）"},{"l":4,"zh":"可爱","py":"kě'ài","ja":"かわいい"},{"l":4,"zh":"大熊猫","py":"dàxióngmāo","ja":"ジャイアントパンダ"},{"l":4,"zh":"著名","py":"zhùmíng","ja":"著名である"},{"l":4,"zh":"武侯祠","py":"Wǔhóucí","ja":"武侯祠（成都の名所）"},{"l":4,"zh":"消息","py":"xiāoxi","ja":"知らせ、ニュース"},{"l":4,"zh":"坏","py":"huài","ja":"悪い"},{"l":4,"zh":"先","py":"xiān","ja":"先に、まず"},{"l":4,"zh":"都","py":"dōu","ja":"すべて、みな、いずれも"},{"l":4,"zh":"饭","py":"fàn","ja":"食事、ご飯"},{"l":4,"zh":"散步","py":"sàn//bù","ja":"散歩する"},{"l":4,"zh":"习惯","py":"xíguàn","ja":"習慣"},{"l":4,"zh":"上海菜","py":"Shànghǎicài","ja":"上海料理"},{"l":4,"zh":"四川菜","py":"Sìchuāncài","ja":"四川料理"},{"l":4,"zh":"广东菜","py":"Guǎngdōngcài","ja":"広東料理"},{"l":4,"zh":"本〔量〕","py":"běn","ja":"〜冊"},{"l":4,"zh":"行李","py":"xíngli","ja":"荷物"},{"l":4,"zh":"常常","py":"chángcháng","ja":"しばしば、よく"},{"l":4,"zh":"上学","py":"shàng//xué","ja":"通学する、学校へ行く"},{"l":4,"zh":"路上","py":"lùshang","ja":"道中、途中"},{"l":4,"zh":"背","py":"bèi","ja":"暗記する、暗唱する"},{"l":4,"zh":"单词","py":"dāncí","ja":"単語"},{"l":4,"zh":"新能源车","py":"xīnnéngyuánchē","ja":"新エネルギー車"},{"l":4,"zh":"流行","py":"liúxíng","ja":"流行する"},{"l":4,"zh":"天〔量〕","py":"tiān","ja":"〜日間"},{"l":4,"zh":"睡懒觉","py":"shuì lǎnjiào","ja":"朝寝坊する"},{"l":5,"zh":"到","py":"dào","ja":"着く、到着する"},{"l":5,"zh":"抱歉","py":"bàoqiàn","ja":"申し訳なく思う、ごめんなさい"},{"l":5,"zh":"没关系","py":"méi guānxi","ja":"かまわない、大丈夫"},{"l":5,"zh":"分钟","py":"fēnzhōng","ja":"〜分間"},{"l":5,"zh":"长〔形〕","py":"cháng","ja":"長い"},{"l":5,"zh":"拿铁","py":"nátiě","ja":"ラテ"},{"l":5,"zh":"多少","py":"duōshao","ja":"いくら、どれくらい"},{"l":5,"zh":"钱","py":"qián","ja":"お金"},{"l":5,"zh":"块〔量〕","py":"kuài","ja":"〜元（お金の単位・話し言葉）"},{"l":5,"zh":"杯〔量〕","py":"bēi","ja":"〜杯"},{"l":5,"zh":"不错","py":"búcuò","ja":"悪くない、なかなかよい"},{"l":5,"zh":"热","py":"rè","ja":"熱い、ホットの"},{"l":5,"zh":"冰","py":"bīng","ja":"冷たい、アイスの"},{"l":5,"zh":"点〔動〕","py":"diǎn","ja":"注文する"},{"l":5,"zh":"法语","py":"Fǎyǔ","ja":"フランス語"},{"l":5,"zh":"讲座","py":"jiǎngzuò","ja":"講座、講演"},{"l":5,"zh":"会","py":"huì","ja":"（習得して）〜できる（助動詞）"},{"l":5,"zh":"说","py":"shuō","ja":"話す"},{"l":5,"zh":"只","py":"zhǐ","ja":"ただ〜だけ"},{"l":5,"zh":"简单","py":"jiǎndān","ja":"簡単である"},{"l":5,"zh":"翻译","py":"fānyì","ja":"通訳、翻訳（する）"},{"l":5,"zh":"办","py":"bàn","ja":"行う、開催する"},{"l":5,"zh":"车","py":"chē","ja":"車、車両"},{"l":5,"zh":"正","py":"zhèng","ja":"ちょうど（〜しているところ）"},{"l":5,"zh":"线","py":"xiàn","ja":"（路線の）〜線"},{"l":5,"zh":"再","py":"zài","ja":"それから、さらに、また"},{"l":5,"zh":"倒","py":"dǎo","ja":"乗り換える"},{"l":5,"zh":"站","py":"zhàn","ja":"駅"},{"l":5,"zh":"或者","py":"huòzhě","ja":"または、あるいは"},{"l":5,"zh":"出租车","py":"chūzūchē","ja":"タクシー"},{"l":5,"zh":"出生","py":"chūshēng","ja":"生まれる"},{"l":5,"zh":"怎么","py":"zěnme","ja":"どうやって、どのように"},{"l":5,"zh":"厦门","py":"Xiàmén","ja":"厦門（アモイ、地名）"},{"l":5,"zh":"订","py":"dìng","ja":"予約する"},{"l":5,"zh":"座儿","py":"zuòr","ja":"席"},{"l":5,"zh":"打电话","py":"dǎ diànhuà","ja":"電話をかける"},{"l":5,"zh":"手机","py":"shǒujī","ja":"携帯電話、スマホ"},{"l":5,"zh":"号码","py":"hàomǎ","ja":"番号"},{"l":5,"zh":"高中","py":"gāozhōng","ja":"高校"},{"l":5,"zh":"零花钱","py":"línghuāqián","ja":"小遣い"},{"l":5,"zh":"拉","py":"lā","ja":"（弦楽器を）弾く"},{"l":5,"zh":"二胡","py":"èrhú","ja":"二胡（楽器）"},{"l":5,"zh":"骑","py":"qí","ja":"（またがって）乗る"},{"l":5,"zh":"说话","py":"shuō//huà","ja":"話をする"},{"l":5,"zh":"正宗","py":"zhèngzōng","ja":"本場の、正統の"},{"l":5,"zh":"叫花鸡","py":"jiàohuājī","ja":"叫花鶏（料理名・こじき鶏）"},{"l":5,"zh":"批评","py":"pīpíng","ja":"叱る、批判する"},{"l":5,"zh":"源氏物语","py":"Yuánshì Wùyǔ","ja":"『源氏物語』"},{"l":5,"zh":"但是","py":"dànshì","ja":"しかし"},{"l":5,"zh":"一直","py":"yìzhí","ja":"ずっと"},{"l":5,"zh":"饺子","py":"jiǎozi","ja":"餃子"},{"l":5,"zh":"皮儿","py":"pír","ja":"皮"},{"l":5,"zh":"请问","py":"qǐngwèn","ja":"おうかがいします"},{"l":5,"zh":"名字","py":"míngzi","ja":"名前"},{"l":5,"zh":"写","py":"xiě","ja":"書く"},{"l":5,"zh":"一般","py":"yìbān","ja":"ふつう、一般に"},{"l":5,"zh":"汤","py":"tāng","ja":"スープ"},{"l":5,"zh":"菜","py":"cài","ja":"料理、おかず"},{"l":5,"zh":"参观","py":"cānguān","ja":"見学する"},{"l":5,"zh":"故宫","py":"Gùgōng","ja":"故宮"},{"l":5,"zh":"然后","py":"ránhòu","ja":"それから"},{"l":5,"zh":"太古里","py":"Tàigǔlǐ","ja":"太古里（商業施設名）"},{"l":5,"zh":"东西","py":"dōngxi","ja":"品物、もの"},{"l":5,"zh":"欢迎","py":"huānyíng","ja":"歓迎する、いらっしゃいませ"},{"l":5,"zh":"够","py":"gòu","ja":"足りる"},{"l":6,"zh":"想到","py":"xiǎngdào","ja":"思いつく、予想する（没想到＝思いがけない）"},{"l":6,"zh":"考","py":"kǎo","ja":"受験する、試験を受ける"},{"l":6,"zh":"进","py":"jìn","ja":"入る"},{"l":6,"zh":"累","py":"lèi","ja":"疲れている"},{"l":6,"zh":"放","py":"fàng","ja":"置く、放す"},{"l":6,"zh":"下〔方向動〕","py":"xià","ja":"下ろす、下る"},{"l":6,"zh":"聊天儿","py":"liáo//tiānr","ja":"おしゃべりする"},{"l":6,"zh":"一会儿","py":"yíhuìr","ja":"少しの間"},{"l":6,"zh":"看","py":"kàn","ja":"見る；（〜と）思う、見たところ"},{"l":6,"zh":"熟","py":"shú","ja":"親しい、よく知っている"},{"l":6,"zh":"认识","py":"rènshi","ja":"知り合う、知っている"},{"l":6,"zh":"中学","py":"zhōngxué","ja":"中高（中等学校）"},{"l":6,"zh":"初中","py":"chūzhōng","ja":"中学校"},{"l":6,"zh":"毕业","py":"bì//yè","ja":"卒業する"},{"l":6,"zh":"转学","py":"zhuǎn//xué","ja":"転校する"},{"l":6,"zh":"后来","py":"hòulái","ja":"その後"},{"l":6,"zh":"幸好","py":"xìnghǎo","ja":"幸いにも"},{"l":6,"zh":"理科","py":"lǐkē","ja":"理科、理系"},{"l":6,"zh":"文科","py":"wénkē","ja":"文科、文系"},{"l":6,"zh":"错〔形〕","py":"cuò","ja":"間違っている"},{"l":6,"zh":"老","py":"lǎo","ja":"古い、昔からの（老朋友＝古い友達）"},{"l":6,"zh":"成〔動〕","py":"chéng","ja":"〜になる"},{"l":6,"zh":"词","py":"cí","ja":"単語、言葉"},{"l":6,"zh":"黑历史","py":"hēilìshǐ","ja":"黒歴史"},{"l":6,"zh":"明白","py":"míngbai","ja":"分かる、理解する"},{"l":6,"zh":"太","py":"tài","ja":"あまりにも、〜すぎる"},{"l":6,"zh":"有意思","py":"yǒu yìsi","ja":"面白い"},{"l":6,"zh":"打开","py":"dǎkāi","ja":"開ける"},{"l":6,"zh":"冰箱","py":"bīngxiāng","ja":"冷蔵庫"},{"l":6,"zh":"拿","py":"ná","ja":"持つ、取る"},{"l":6,"zh":"可乐","py":"kělè","ja":"コーラ"},{"l":6,"zh":"给〔動〕","py":"gěi","ja":"与える、あげる"},{"l":6,"zh":"坐","py":"zuò","ja":"座る"},{"l":6,"zh":"聊","py":"liáo","ja":"おしゃべりする"},{"l":6,"zh":"句〔量〕","py":"jù","ja":"〜言、〜句"},{"l":6,"zh":"生日","py":"shēngri","ja":"誕生日"},{"l":6,"zh":"送","py":"sòng","ja":"贈る、送る"},{"l":6,"zh":"礼物","py":"lǐwù","ja":"プレゼント"},{"l":6,"zh":"驾照","py":"jiàzhào","ja":"運転免許証"},{"l":6,"zh":"开车","py":"kāi//chē","ja":"車を運転する"},{"l":6,"zh":"海边儿","py":"hǎibiānr","ja":"海辺"},{"l":6,"zh":"兜风","py":"dōu//fēng","ja":"ドライブする"},{"l":6,"zh":"咖啡","py":"kāfēi","ja":"コーヒー"},{"l":6,"zh":"加","py":"jiā","ja":"加える"},{"l":6,"zh":"糖","py":"táng","ja":"砂糖"},{"l":6,"zh":"奶精","py":"nǎijīng","ja":"コーヒーフレッシュ、ミルク"},{"l":6,"zh":"听劝","py":"tīngquàn","ja":"忠告を聞く"},{"l":6,"zh":"爬","py":"pá","ja":"登る"},{"l":6,"zh":"雪山","py":"xuěshān","ja":"雪山"},{"l":6,"zh":"饱","py":"bǎo","ja":"満腹である"},{"l":6,"zh":"完","py":"wán","ja":"終わる"},{"l":6,"zh":"见","py":"jiàn","ja":"見える、知覚する"},{"l":6,"zh":"懂","py":"dǒng","ja":"分かる、理解する"},{"l":6,"zh":"洗","py":"xǐ","ja":"洗う"},{"l":6,"zh":"干净","py":"gānjìng","ja":"清潔である、きれいである"},{"l":6,"zh":"晚〔形〕","py":"wǎn","ja":"（時間が）遅い"},{"l":6,"zh":"食堂","py":"shítáng","ja":"食堂"},{"l":6,"zh":"套餐","py":"tàocān","ja":"定食、セット"},{"l":6,"zh":"已经","py":"yǐjīng","ja":"すでに"},{"l":6,"zh":"腻","py":"nì","ja":"飽きる"},{"l":6,"zh":"刚才","py":"gāngcái","ja":"たったいま、さっき"},{"l":6,"zh":"话","py":"huà","ja":"話、言葉"},{"l":6,"zh":"清楚","py":"qīngchu","ja":"はっきりしている"},{"l":6,"zh":"修","py":"xiū","ja":"修理する"},{"l":6,"zh":"夏天","py":"xiàtiān","ja":"夏"},{"l":6,"zh":"天气","py":"tiānqì","ja":"天気"},{"l":6,"zh":"打工","py":"dǎ//gōng","ja":"アルバイトをする"},{"l":6,"zh":"大家","py":"dàjiā","ja":"みんな"},{"l":6,"zh":"觉得","py":"juéde","ja":"感じる、〜と思う"},{"l":6,"zh":"难","py":"nán","ja":"難しい"},{"l":6,"zh":"父母","py":"fùmǔ","ja":"父母、両親"},{"l":6,"zh":"商量","py":"shāngliang","ja":"相談する"},{"l":6,"zh":"导演","py":"dǎoyǎn","ja":"監督"},{"l":6,"zh":"新作","py":"xīnzuò","ja":"新作"},{"l":6,"zh":"终于","py":"zhōngyú","ja":"ついに"},{"l":6,"zh":"观众","py":"guānzhòng","ja":"観客"},{"l":6,"zh":"下（〜围棋）","py":"xià","ja":"（囲碁を）打つ"},{"l":6,"zh":"围棋","py":"wéiqí","ja":"囲碁"},{"l":6,"zh":"赢","py":"yíng","ja":"勝つ"},{"l":6,"zh":"成功","py":"chénggōng","ja":"成功"},{"l":6,"zh":"运气","py":"yùnqi","ja":"運、幸運"},{"l":6,"zh":"关系","py":"guānxi","ja":"関係"},{"l":6,"zh":"平时","py":"píngshí","ja":"ふだん、日ごろ"},{"l":6,"zh":"普洱茶","py":"Pǔ'ěrchá","ja":"プーアル茶"},{"l":6,"zh":"退烧药","py":"tuìshāoyào","ja":"解熱剤"},{"l":6,"zh":"编程","py":"biānchéng","ja":"プログラミング（する）"},{"l":6,"zh":"可靠","py":"kěkào","ja":"信頼できる"},{"l":6,"zh":"场〔量〕","py":"chǎng","ja":"〜試合、〜回（試合・公演を数える）"},{"l":6,"zh":"精彩","py":"jīngcǎi","ja":"見事だ、素晴らしい"},{"l":6,"zh":"心眼儿","py":"xīnyǎnr","ja":"心の底、度量"},{"l":6,"zh":"小〔形〕","py":"xiǎo","ja":"小さい"},{"l":6,"zh":"道〔量〕","py":"dào","ja":"〜問（問題を数える）"},{"l":6,"zh":"题","py":"tí","ja":"問題、問い"},{"l":6,"zh":"答","py":"dá","ja":"答える"},{"l":6,"zh":"考生","py":"kǎoshēng","ja":"受験生"},{"l":6,"zh":"休息","py":"xiūxi","ja":"休む、休憩する"},{"l":6,"zh":"日文","py":"Rìwén","ja":"日本語"},{"l":6,"zh":"钟头","py":"zhōngtóu","ja":"時間（＝小时）"},{"l":7,"zh":"脸色","py":"liǎnsè","ja":"顔色"},{"l":7,"zh":"病〔動〕","py":"bìng","ja":"病気になる"},{"l":7,"zh":"发烧","py":"fā//shāo","ja":"熱が出る"},{"l":7,"zh":"头","py":"tóu","ja":"頭"},{"l":7,"zh":"疼","py":"téng","ja":"痛い"},{"l":7,"zh":"药","py":"yào","ja":"薬"},{"l":7,"zh":"有点儿","py":"yǒudiǎnr","ja":"ちょっと、少し（〜だ）"},{"l":7,"zh":"课","py":"kè","ja":"授業"},{"l":7,"zh":"别","py":"bié","ja":"〜するな（禁止）"},{"l":7,"zh":"坚持","py":"jiānchí","ja":"がんばり通す、無理をして続ける"},{"l":7,"zh":"医院","py":"yīyuàn","ja":"病院"},{"l":7,"zh":"检查","py":"jiǎnchá","ja":"検査（する）"},{"l":7,"zh":"一下","py":"yíxià","ja":"ちょっと（〜する）"},{"l":7,"zh":"带","py":"dài","ja":"連れる、携帯する"},{"l":7,"zh":"陪","py":"péi","ja":"付き添う"},{"l":7,"zh":"谢谢","py":"xièxie","ja":"ありがとう"},{"l":7,"zh":"客气〔動〕","py":"kèqi","ja":"遠慮する（别客气＝どういたしまして）"},{"l":7,"zh":"叫（〜外卖）","py":"jiào","ja":"（出前を）頼む"},{"l":7,"zh":"外卖","py":"wàimài","ja":"出前、デリバリー"},{"l":7,"zh":"下〔動〕","py":"xià","ja":"（授業が）終わる（下课＝授業が終わる）"},{"l":7,"zh":"趟〔量〕","py":"tàng","ja":"〜回（往復の回数）"},{"l":7,"zh":"碗〔量〕","py":"wǎn","ja":"〜杯（碗に入ったもの）"},{"l":7,"zh":"粥","py":"zhōu","ja":"おかゆ"},{"l":7,"zh":"份儿〔量〕","py":"fènr","ja":"〜人前、〜セット"},{"l":7,"zh":"石锅拌饭","py":"shíguōbànfàn","ja":"石焼ビビンバ"},{"l":7,"zh":"大象","py":"dàxiàng","ja":"象"},{"l":7,"zh":"鼻子","py":"bízi","ja":"鼻"},{"l":7,"zh":"名胜","py":"míngshèng","ja":"名所"},{"l":7,"zh":"古迹","py":"gǔjì","ja":"古跡、旧跡"},{"l":7,"zh":"裙子","py":"qúnzi","ja":"スカート"},{"l":7,"zh":"款式","py":"kuǎnshì","ja":"デザイン、様式"},{"l":7,"zh":"新颖","py":"xīnyǐng","ja":"斬新である"},{"l":7,"zh":"家〔量〕","py":"jiā","ja":"〜軒（店などを数える）"},{"l":7,"zh":"餐馆","py":"cānguǎn","ja":"レストラン"},{"l":7,"zh":"价格","py":"jiàgé","ja":"価格"},{"l":7,"zh":"合理","py":"hélǐ","ja":"合理的である、リーズナブルだ"},{"l":7,"zh":"经验","py":"jīngyàn","ja":"経験"},{"l":7,"zh":"丰富","py":"fēngfù","ja":"豊富である"},{"l":7,"zh":"工作〔動〕","py":"gōngzuò","ja":"働く、仕事（をする）"},{"l":7,"zh":"比较〔副〕","py":"bǐjiào","ja":"比較的、わりと"},{"l":7,"zh":"文章","py":"wénzhāng","ja":"文章"},{"l":7,"zh":"观点","py":"guāndiǎn","ja":"観点、見方"},{"l":7,"zh":"陈旧","py":"chénjiù","ja":"古い、古臭い"},{"l":7,"zh":"担心","py":"dān//xīn","ja":"心配する"},{"l":7,"zh":"病〔名〕","py":"bìng","ja":"病気"},{"l":7,"zh":"走廊","py":"zǒuláng","ja":"廊下"},{"l":7,"zh":"跑","py":"pǎo","ja":"走る"},{"l":7,"zh":"走路","py":"zǒu//lù","ja":"道を歩く"},{"l":7,"zh":"一寸光阴一寸金","py":"yí cùn guāngyīn yí cùn jīn","ja":"一寸の光陰軽んずべからず（時は金なり）"},{"l":7,"zh":"浪费","py":"làngfèi","ja":"浪費する、無駄にする"},{"l":7,"zh":"次〔量〕","py":"cì","ja":"〜回（動作の回数）"},{"l":7,"zh":"开会","py":"kāi//huì","ja":"会議を開く"},{"l":7,"zh":"结论","py":"jiélùn","ja":"結論"},{"l":7,"zh":"下班","py":"xià//bān","ja":"退勤する、仕事が終わる"},{"l":7,"zh":"超市","py":"chāoshì","ja":"スーパーマーケット"},{"l":7,"zh":"遍〔量〕","py":"biàn","ja":"〜回（始めから終わりまで通しの回数）"},{"l":7,"zh":"饭点儿","py":"fàndiǎnr","ja":"食事どき"},{"l":7,"zh":"顿〔量〕","py":"dùn","ja":"〜食、〜回（食事を数える）"},{"l":7,"zh":"便饭","py":"biànfàn","ja":"簡単な食事、ありあわせの食事"},{"l":7,"zh":"节〔量〕","py":"jié","ja":"〜コマ（授業を数える）"},{"l":7,"zh":"留","py":"liú","ja":"残す、（宿題を）出す"},{"l":7,"zh":"作业","py":"zuòyè","ja":"宿題"},{"l":7,"zh":"新加坡","py":"Xīnjiāpō","ja":"シンガポール"},{"l":7,"zh":"物价","py":"wùjià","ja":"物価"},{"l":7,"zh":"糟糕","py":"zāogāo","ja":"まずい、しまった"},{"l":7,"zh":"没事儿","py":"méi//shìr","ja":"何でもない、大丈夫"},{"l":7,"zh":"寄","py":"jì","ja":"送る、郵送する"},{"l":7,"zh":"快递","py":"kuàidì","ja":"宅配便、速達"},{"l":7,"zh":"秦〔姓〕","py":"Qín","ja":"秦（姓）"},{"l":7,"zh":"答应","py":"dāying","ja":"承諾する、応じる"},{"l":7,"zh":"推荐信","py":"tuījiànxìn","ja":"推薦状"},{"l":7,"zh":"经常","py":"jīngcháng","ja":"いつも、しょっちゅう"},{"l":7,"zh":"讲","py":"jiǎng","ja":"話す、語る"},{"l":7,"zh":"过去","py":"guòqù","ja":"過去"},{"l":7,"zh":"好意思","py":"hǎoyìsi","ja":"平気である（不好意思＝きまりが悪い、すみません）"},{"l":7,"zh":"添","py":"tiān","ja":"加える、（面倒を）かける"},{"l":7,"zh":"麻烦〔名〕","py":"máfan","ja":"面倒、手間"},{"l":8,"zh":"付","py":"fù","ja":"支払う"},{"l":8,"zh":"现金","py":"xiànjīn","ja":"現金"},{"l":8,"zh":"用〔前置〕","py":"yòng","ja":"〜で、〜を使って"},{"l":8,"zh":"微信","py":"Wēixìn","ja":"WeChat（ウィーチャット）"},{"l":8,"zh":"支付","py":"zhīfù","ja":"支払う、決済する"},{"l":8,"zh":"又","py":"yòu","ja":"また、またしても"},{"l":8,"zh":"总是","py":"zǒngshì","ja":"いつも"},{"l":8,"zh":"客气〔形〕","py":"kèqi","ja":"遠慮深い、他人行儀だ"},{"l":8,"zh":"身体","py":"shēntǐ","ja":"体"},{"l":8,"zh":"舒服","py":"shūfu","ja":"気分がよい（不舒服＝具合が悪い）"},{"l":8,"zh":"照顾","py":"zhàogù","ja":"面倒を見る、世話をする"},{"l":8,"zh":"少〔形〕","py":"shǎo","ja":"少ない"},{"l":8,"zh":"晕","py":"yūn","ja":"めまいがする"},{"l":8,"zh":"点儿〔量〕","py":"diǎnr","ja":"少し（一点儿の略）"},{"l":8,"zh":"挂号","py":"guà//hào","ja":"（病院で）受付をする"},{"l":8,"zh":"内科","py":"nèikē","ja":"内科"},{"l":8,"zh":"诊室","py":"zhěnshì","ja":"診察室"},{"l":8,"zh":"门","py":"mén","ja":"ドア、門"},{"l":8,"zh":"好了","py":"hǎole","ja":"よし、（準備）できた"},{"l":8,"zh":"得","py":"děi","ja":"〜しなければならない（助動詞）"},{"l":8,"zh":"交费","py":"jiāo//fèi","ja":"費用を支払う"},{"l":8,"zh":"能","py":"néng","ja":"〜できる（助動詞）"},{"l":8,"zh":"刷卡","py":"shuā//kǎ","ja":"カードで払う"},{"l":8,"zh":"还是","py":"háishi","ja":"それとも"},{"l":8,"zh":"窗口","py":"chuāngkǒu","ja":"窓口"},{"l":8,"zh":"大厅","py":"dàtīng","ja":"ロビー、ホール"},{"l":8,"zh":"自助机","py":"zìzhùjī","ja":"セルフ端末、自動精算機"},{"l":8,"zh":"操作","py":"cāozuò","ja":"操作する"},{"l":8,"zh":"电子","py":"diànzǐ","ja":"電子"},{"l":8,"zh":"方便","py":"fāngbiàn","ja":"便利である"},{"l":8,"zh":"一些","py":"yìxiē","ja":"少し、いくらか"},{"l":8,"zh":"过","py":"guò","ja":"過ぎる、（駅を）乗り過ごす"},{"l":8,"zh":"字","py":"zì","ja":"字"},{"l":8,"zh":"难为情","py":"nánwéiqíng","ja":"きまりが悪い、恥ずかしい"},{"l":8,"zh":"剩下","py":"shèngxia","ja":"残る、残す"},{"l":8,"zh":"活儿","py":"huór","ja":"仕事、作業"},{"l":8,"zh":"干","py":"gàn","ja":"する、やる"},{"l":8,"zh":"路","py":"lù","ja":"道"},{"l":8,"zh":"入乡随俗","py":"rù xiāng suí sú","ja":"郷に入っては郷に従え"},{"l":8,"zh":"别人","py":"biéren","ja":"他人、ほかの人"},{"l":8,"zh":"守","py":"shǒu","ja":"守る"},{"l":8,"zh":"规矩","py":"guīju","ja":"規則、しきたり"},{"l":8,"zh":"网红","py":"wǎnghóng","ja":"ネットで人気の、インフルエンサー"},{"l":8,"zh":"餐厅","py":"cāntīng","ja":"レストラン"},{"l":8,"zh":"吃饭","py":"chī//fàn","ja":"食事をする"},{"l":8,"zh":"预约","py":"yùyuē","ja":"予約（する）"},{"l":8,"zh":"胖","py":"pàng","ja":"太っている"},{"l":8,"zh":"减肥","py":"jiǎn//féi","ja":"ダイエットする"},{"l":8,"zh":"早饭","py":"zǎofàn","ja":"朝食"},{"l":8,"zh":"米饭","py":"mǐfàn","ja":"ご飯、白米"},{"l":8,"zh":"打车","py":"dǎ//chē","ja":"タクシーを拾う、タクシーに乗る"},{"l":8,"zh":"一口气","py":"yìkǒuqì","ja":"一気に"},{"l":8,"zh":"俯卧撑","py":"fǔwòchēng","ja":"腕立て伏せ"},{"l":8,"zh":"醉","py":"zuì","ja":"酔う"},{"l":8,"zh":"大","py":"dà","ja":"大きい、（年齢が）上だ"},{"l":8,"zh":"语音","py":"yǔyīn","ja":"音声"},{"l":8,"zh":"输入","py":"shūrù","ja":"入力（する）"},{"l":8,"zh":"打字","py":"dǎ//zì","ja":"タイピングする、文字を打つ"},{"l":8,"zh":"快","py":"kuài","ja":"速い"},{"l":8,"zh":"梅雨","py":"méiyǔ","ja":"梅雨"},{"l":8,"zh":"季节","py":"jìjié","ja":"季節"},{"l":8,"zh":"市中心","py":"shìzhōngxīn","ja":"市の中心部"},{"l":8,"zh":"热闹","py":"rènao","ja":"にぎやかである"},{"l":8,"zh":"冷","py":"lěng","ja":"寒い"},{"l":8,"zh":"安静","py":"ānjìng","ja":"静かである"},{"l":8,"zh":"地方","py":"dìfang","ja":"場所、ところ"},{"l":8,"zh":"出门","py":"chū//mén","ja":"出かける"},{"l":8,"zh":"酒","py":"jiǔ","ja":"酒"},{"l":8,"zh":"股票","py":"gǔpiào","ja":"株、株式"},{"l":8,"zh":"涨","py":"zhǎng","ja":"値上がりする、上がる"},{"l":9,"zh":"空儿","py":"kòngr","ja":"空き時間、暇"},{"l":9,"zh":"的话","py":"dehuà","ja":"〜ならば"},{"l":9,"zh":"月底","py":"yuèdǐ","ja":"月末"},{"l":9,"zh":"回国","py":"huí//guó","ja":"帰国する"},{"l":9,"zh":"送行","py":"sòng//xíng","ja":"見送る"},{"l":9,"zh":"回头〔副〕","py":"huítóu","ja":"あとで"},{"l":9,"zh":"快递员","py":"kuàidìyuán","ja":"宅配便の配達員"},{"l":9,"zh":"取","py":"qǔ","ja":"受け取る、取る"},{"l":9,"zh":"一块儿","py":"yíkuàir","ja":"一緒に"},{"l":9,"zh":"做客","py":"zuò//kè","ja":"客として訪問する"},{"l":9,"zh":"炸酱面","py":"zhájiàngmiàn","ja":"ジャージャー麺"},{"l":9,"zh":"以后","py":"yǐhòu","ja":"以後、〜のあと"},{"l":9,"zh":"让","py":"ràng","ja":"〜させる"},{"l":9,"zh":"浙江人","py":"Zhèjiāngrén","ja":"浙江省の人"},{"l":9,"zh":"同事","py":"tóngshì","ja":"同僚"},{"l":9,"zh":"知天命","py":"zhītiānmìng","ja":"天命を知る（50歳のこと）"},{"l":9,"zh":"年纪","py":"niánjì","ja":"年齢"},{"l":9,"zh":"端午节","py":"Duānwǔ Jié","ja":"端午の節句"},{"l":9,"zh":"打算〔動〕","py":"dǎsuan","ja":"〜するつもりだ"},{"l":9,"zh":"如果","py":"rúguǒ","ja":"もし"},{"l":9,"zh":"要是","py":"yàoshi","ja":"もし"},{"l":9,"zh":"就","py":"jiù","ja":"（それなら）〜だ"},{"l":9,"zh":"一定","py":"yídìng","ja":"きっと、必ず"},{"l":9,"zh":"满分","py":"mǎnfēn","ja":"満点"},{"l":9,"zh":"反对","py":"fǎnduì","ja":"反対する"},{"l":9,"zh":"决定","py":"juédìng","ja":"決定する、決める"},{"l":9,"zh":"马路","py":"mǎlù","ja":"大通り、道路"},{"l":9,"zh":"注意","py":"zhùyì","ja":"注意する"},{"l":9,"zh":"来往","py":"láiwǎng","ja":"行き交う"},{"l":9,"zh":"车辆","py":"chēliàng","ja":"車両"},{"l":9,"zh":"提前","py":"tíqián","ja":"前もって、繰り上げて"},{"l":9,"zh":"公共汽车","py":"gōnggòng qìchē","ja":"バス"},{"l":9,"zh":"麻烦〔形〕","py":"máfan","ja":"面倒である"},{"l":9,"zh":"身儿〔量〕","py":"shēnr","ja":"（服装の）ひとそろい"},{"l":9,"zh":"打扮","py":"dǎban","ja":"装い、身なり"},{"l":9,"zh":"精神〔形〕","py":"jīngshen","ja":"元気だ、きりっとしている"},{"l":9,"zh":"过","py":"guò","ja":"過ぎる、経つ"},{"l":9,"zh":"小狗","py":"xiǎogǒu","ja":"子犬"},{"l":9,"zh":"跳","py":"tiào","ja":"跳ぶ、跳ねる"},{"l":9,"zh":"汇","py":"huì","ja":"送金する"},{"l":9,"zh":"警察","py":"jǐngchá","ja":"警察"},{"l":9,"zh":"司机","py":"sījī","ja":"運転手"},{"l":9,"zh":"停车","py":"tíng//chē","ja":"車を停める"},{"l":9,"zh":"随便","py":"suíbiàn","ja":"自由に、好きなように"},{"l":9,"zh":"高兴","py":"gāoxìng","ja":"うれしい"},{"l":9,"zh":"列车员","py":"lièchēyuán","ja":"列車の乗務員"},{"l":9,"zh":"车票","py":"chēpiào","ja":"乗車券"},{"l":9,"zh":"家里人","py":"jiālirén","ja":"家族"},{"l":9,"zh":"外面","py":"wàimiàn","ja":"外"},{"l":9,"zh":"勇气","py":"yǒngqì","ja":"勇気"},{"l":9,"zh":"钦佩","py":"qīnpèi","ja":"敬服する"},{"l":9,"zh":"吉祥寺","py":"Jíxiángsì","ja":"吉祥寺（地名）"},{"l":9,"zh":"钥匙","py":"yàoshi","ja":"鍵"},{"l":9,"zh":"地上","py":"dìshang","ja":"地面"},{"l":9,"zh":"茶","py":"chá","ja":"お茶"},{"l":9,"zh":"茶叶","py":"cháyè","ja":"茶葉"},{"l":10,"zh":"中文","py":"Zhōngwén","ja":"中国語"},{"l":10,"zh":"听说","py":"tīng//shuō","ja":"聞くところによると〜だそうだ"},{"l":10,"zh":"三体","py":"Sāntǐ","ja":"『三体』（SF小説）"},{"l":10,"zh":"小说","py":"xiǎoshuō","ja":"小説"},{"l":10,"zh":"挺〜的","py":"tǐng〜de","ja":"なかなか〜だ、けっこう〜だ"},{"l":10,"zh":"一共","py":"yígòng","ja":"全部で、合わせて"},{"l":10,"zh":"完全","py":"wánquán","ja":"完全に"},{"l":10,"zh":"理科生","py":"lǐkēshēng","ja":"理系の学生"},{"l":10,"zh":"挑战","py":"tiǎozhàn","ja":"挑戦（する）"},{"l":10,"zh":"爱","py":"ài","ja":"〜するのが好きだ、愛する"},{"l":10,"zh":"题材","py":"tícái","ja":"題材"},{"l":10,"zh":"连续剧","py":"liánxùjù","ja":"連続ドラマ"},{"l":10,"zh":"发现","py":"fāxiàn","ja":"発見する、気づく"},{"l":10,"zh":"进步","py":"jìnbù","ja":"進歩（する）"},{"l":10,"zh":"谦虚","py":"qiānxū","ja":"謙虚である"},{"l":10,"zh":"些〔量〕","py":"xiē","ja":"いくつかの（前些天＝先日）"},{"l":10,"zh":"建","py":"jiàn","ja":"建てる"},{"l":10,"zh":"植物园","py":"zhíwùyuán","ja":"植物園"},{"l":10,"zh":"座〔量〕","py":"zuò","ja":"〜つ（都市・建物・山などを数える）"},{"l":10,"zh":"城市","py":"chéngshì","ja":"都市"},{"l":10,"zh":"历史","py":"lìshǐ","ja":"歴史"},{"l":10,"zh":"悠久","py":"yōujiǔ","ja":"悠久である、（歴史が）長い"},{"l":10,"zh":"张爱玲","py":"Zhāng Àilíng","ja":"張愛玲（作家名）"},{"l":10,"zh":"兼顾","py":"jiāngù","ja":"両立させる、あわせて配慮する"},{"l":10,"zh":"公平","py":"gōngpíng","ja":"公平"},{"l":10,"zh":"效率","py":"xiàolǜ","ja":"効率"},{"l":10,"zh":"聚会","py":"jùhuì","ja":"集まり、パーティー"},{"l":10,"zh":"最近","py":"zuìjìn","ja":"最近"},{"l":10,"zh":"忙","py":"máng","ja":"忙しい"},{"l":10,"zh":"远","py":"yuǎn","ja":"遠い"},{"l":10,"zh":"重","py":"zhòng","ja":"重い"},{"l":10,"zh":"深","py":"shēn","ja":"深い"},{"l":10,"zh":"会场","py":"huìchǎng","ja":"会場"},{"l":10,"zh":"面积","py":"miànjī","ja":"面積"},{"l":10,"zh":"游泳池","py":"yóuyǒngchí","ja":"プール"},{"l":10,"zh":"生词","py":"shēngcí","ja":"新出単語"},{"l":10,"zh":"记住","py":"jìzhù","ja":"しっかり覚える"},{"l":10,"zh":"睡着","py":"shuìzháo","ja":"寝つく"},{"l":10,"zh":"训练","py":"xùnliàn","ja":"訓練（する）"},{"l":10,"zh":"举","py":"jǔ","ja":"持ち上げる"},{"l":10,"zh":"公斤","py":"gōngjīn","ja":"キログラム"},{"l":10,"zh":"套〔量〕","py":"tào","ja":"〜着、〜セット（スーツなどを数える）"},{"l":10,"zh":"西服","py":"xīfú","ja":"スーツ、背広"},{"l":10,"zh":"面料","py":"miànliào","ja":"生地"},{"l":10,"zh":"富士山","py":"Fùshìshān","ja":"富士山"}];
+const KEY = w => w.l + "|" + w.zh;
+const LS = "cnquiz_v1";
+
+let st = {mode:"a", lessons:[1,2,3,4,5,6,7,8,9,10], streak:{a:{},b:{}}};
+try{
+  const saved = JSON.parse(localStorage.getItem(LS));
+  if(saved && saved.streak){ st = Object.assign(st, saved);
+    st.streak.a = st.streak.a||{}; st.streak.b = st.streak.b||{}; }
+}catch(e){}
+function save(){ localStorage.setItem(LS, JSON.stringify(st)); }
+
+let cur = null, phase = "q", armTimer = null, lastKey = null;
+
+const $ = id => document.getElementById(id);
+const pool = () => WORDS.filter(w => st.lessons.includes(w.l));
+const alive = () => pool().filter(w => (st.streak[st.mode][KEY(w)]||0) < 3);
+
+function stripAnno(zh){
+  return zh.replace(/〔.*?〕/g,"").replace(/（.*?）/g,"").trim() || zh;
+}
+function fitFont(el, text, maxVw, maxPx, minPx){
+  const w = window.innerWidth;
+  const len = Math.max([...text].length, 1);
+  let size = Math.min(w*maxVw/100, maxPx, (w*0.92)/len*1.35);
+  el.style.fontSize = Math.max(size, minPx) + "px";
+}
+function updateHeader(){
+  $("remain").textContent = alive().length;
+  $("total").textContent = pool().length;
+  $("modeBadge").textContent = st.mode==="a" ? "日→中" : "拼→字";
+}
+function pick(){
+  const a = alive();
+  if(!a.length) return null;
+  if(a.length === 1) return a[0];
+  let w, guard = 0;
+  do{ w = a[Math.floor(Math.random()*a.length)]; guard++; }
+  while(KEY(w) === lastKey && guard < 10);
+  return w;
+}
+function showScreen(id){
+  ["qScreen","aScreen","doneScreen"].forEach(s => $(s).classList.toggle("show", s===id));
+}
+function next(){
+  updateHeader();
+  cur = pick();
+  if(!cur){ showScreen("doneScreen"); phase="done"; return; }
+  phase = "q";
+  const q = st.mode==="a" ? cur.ja : cur.py;
+  $("qKind").textContent = st.mode==="a" ? "日本語 → 中国語" : "ピンイン → 簡体字";
+  $("qText").textContent = q;
+  fitFont($("qText"), q, st.mode==="a" ? 9 : 11, 46, 20);
+  showScreen("qScreen");
+}
+function showAnswer(){
+  phase = "a";
+  const main = stripAnno(cur.zh);
+  $("aZh").textContent = main;
+  fitFont($("aZh"), main, 26, 150, 40);
+  $("aNote").textContent = (main !== cur.zh) ? cur.zh : "";
+  $("aPy").textContent = cur.py;
+  $("aJa").textContent = st.mode==="a" ? "" : cur.ja;
+  const s = st.streak[st.mode][KEY(cur)]||0;
+  $("aStreak").textContent = "●".repeat(s) + "○".repeat(3-s);
+  const z = $("zones");
+  z.classList.remove("armed");
+  clearTimeout(armTimer);
+  armTimer = setTimeout(()=>{ z.classList.add("armed"); phase="a-armed"; }, 500);
+  showScreen("aScreen");
+}
+function judge(ok){
+  const k = KEY(cur);
+  if(ok) st.streak[st.mode][k] = (st.streak[st.mode][k]||0) + 1;
+  else   st.streak[st.mode][k] = 0;
+  lastKey = k;
+  save();
+  next();
+}
+
+$("qScreen").addEventListener("pointerdown", ()=>{ if(phase==="q") showAnswer(); });
+$("zoneNg").addEventListener("pointerdown", ()=>{ if(phase==="a-armed") judge(false); });
+$("zoneOk").addEventListener("pointerdown", ()=>{ if(phase==="a-armed") judge(true); });
+
+/* 設定 */
+function renderSettings(){
+  $("segA").classList.toggle("on", st.mode==="a");
+  $("segB").classList.toggle("on", st.mode==="b");
+  const g = $("lessonGrid"); g.innerHTML = "";
+  const counts = {};
+  WORDS.forEach(w => counts[w.l] = (counts[w.l]||0)+1);
+  for(let n=1; n<=10; n++){
+    const b = document.createElement("button");
+    b.className = "lesson" + (st.lessons.includes(n) ? " on" : "");
+    b.innerHTML = "第" + n + "課<small>" + (counts[n]||0) + "語</small>";
+    b.onclick = ()=>{
+      if(st.lessons.includes(n)) st.lessons = st.lessons.filter(x=>x!==n);
+      else st.lessons.push(n);
+      save(); renderSettings();
+    };
+    g.appendChild(b);
+  }
+}
+function openSettings(){ renderSettings(); $("settings").classList.add("show"); }
+$("gear").onclick = openSettings;
+$("segA").onclick = ()=>{ st.mode="a"; save(); renderSettings(); };
+$("segB").onclick = ()=>{ st.mode="b"; save(); renderSettings(); };
+$("selAll").onclick = ()=>{ st.lessons=[1,2,3,4,5,6,7,8,9,10]; save(); renderSettings(); };
+$("selNone").onclick = ()=>{ st.lessons=[]; save(); renderSettings(); };
+$("resetBtn").onclick = ()=>{
+  const name = st.mode==="a" ? "日本語→中国語" : "ピンイン→簡体字";
+  if(confirm("モード「" + name + "」の進捗をリセットしますか？")){
+    st.streak[st.mode] = {}; save(); renderSettings();
+  }
+};
+$("closeBtn").onclick = ()=>{
+  if(!st.lessons.length){ alert("課を1つ以上選んでください"); return; }
+  $("settings").classList.remove("show");
+  next();
+};
+
+/* Wake Lock */
+let wakeLock = null;
+async function reqWake(){
+  try{ if("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); }catch(e){}
+}
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible") reqWake();
+});
+document.addEventListener("pointerdown", reqWake, {once:true});
+
+next();
+</script>
+</body>
+</html>

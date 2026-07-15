@@ -22,13 +22,13 @@ header{display:flex;align-items:center;justify-content:space-between;
 #stats{font-size:13px;color:var(--sub);letter-spacing:.02em;}
 #modeBadge{font-size:11px;color:var(--accent);border:1px solid var(--accent);
            border-radius:99px;padding:2px 10px;margin-left:8px;}
-#gear,#backBtn{font-size:22px;background:none;border:none;color:var(--sub);padding:4px 8px;}
-#backBtn.dim{opacity:.25;}
+#gear{font-size:22px;background:none;border:none;color:var(--sub);padding:4px 8px;}
 main{flex:1 1 auto;position:relative;overflow:hidden;}
 .screen{position:absolute;inset:0;display:none;}
 .screen.show{display:flex;}
 
 /* 問題画面 */
+.screen{touch-action:none;}
 #qScreen{flex-direction:column;align-items:center;justify-content:center;
          padding:20px 16px 60px;text-align:center;}
 #qText{font-weight:700;line-height:1.25;word-break:break-word;max-width:100%;}
@@ -89,13 +89,13 @@ button{font-family:inherit;}
 <div id="app">
  <header>
   <div id="stats">残り <b id="remain">-</b> / 全 <b id="total">-</b> 語<span id="modeBadge"></span></div>
-  <div><button id="backBtn" class="dim" aria-label="戻る">↩</button><button id="gear" aria-label="設定">⚙</button></div>
+  <button id="gear" aria-label="設定">⚙</button>
  </header>
  <main>
   <div id="qScreen" class="screen">
    <div id="qKind"></div>
    <div id="qText"></div>
-   <div id="qHint">紙に書いたら画面をタップ</div>
+   <div id="qHint">紙に書いたら画面をタップ　／　右へスワイプで1つ戻る</div>
   </div>
   <div id="aScreen" class="screen">
    <div id="zones">
@@ -183,14 +183,13 @@ function showScreen(id){
 function next(){
   updateHeader();
   cur = pick();
-  if(!cur){ showScreen("doneScreen"); phase="done"; refreshBack(); return; }
+  if(!cur){ showScreen("doneScreen"); phase="done"; return; }
   phase = "q";
   const q = st.mode==="a" ? cur.ja : cur.py;
   $("qKind").textContent = st.mode==="a" ? "日本語 → 中国語" : "ピンイン → 簡体字";
   $("qText").textContent = q;
   fitFont($("qText"), q, st.mode==="a" ? 9 : 11, 46, 20);
   showScreen("qScreen");
-  refreshBack();
 }
 function showAnswer(){
   phase = "a";
@@ -207,7 +206,6 @@ function showAnswer(){
   clearTimeout(armTimer);
   armTimer = setTimeout(()=>{ z.classList.add("armed"); phase="a-armed"; }, 500);
   showScreen("aScreen");
-  refreshBack();
 }
 function judge(ok){
   const k = KEY(cur);
@@ -219,16 +217,11 @@ function judge(ok){
   save();
   next();
 }
-function refreshBack(){
-  const can = (phase==="a" || phase==="a-armed") || hist.length > 0;
-  $("backBtn").classList.toggle("dim", !can);
-}
 function undo(){
   if(phase==="a" || phase==="a-armed"){
     clearTimeout(armTimer);
     phase = "q";
     showScreen("qScreen");
-    refreshBack();
     return;
   }
   if(!hist.length) return;
@@ -240,10 +233,28 @@ function undo(){
   showAnswer();
 }
 
-$("qScreen").addEventListener("pointerdown", ()=>{ if(phase==="q") showAnswer(); });
-$("backBtn").addEventListener("pointerdown", (e)=>{ e.stopPropagation(); undo(); });
-$("zoneNg").addEventListener("pointerdown", ()=>{ if(phase==="a-armed") judge(false); });
-$("zoneOk").addEventListener("pointerdown", ()=>{ if(phase==="a-armed") judge(true); });
+/* タップ／スワイプ判定（左→右スワイプで1つ戻る） */
+let gx = 0, gy = 0, gt = 0, gOn = false;
+const mainEl = document.querySelector("main");
+mainEl.addEventListener("pointerdown", (e)=>{
+  if($("settings").classList.contains("show")) return;
+  gOn = true; gx = e.clientX; gy = e.clientY; gt = Date.now();
+});
+mainEl.addEventListener("pointerup", (e)=>{
+  if(!gOn) return;
+  gOn = false;
+  if($("settings").classList.contains("show")) return;
+  const dx = e.clientX - gx, dy = e.clientY - gy;
+  if(dx > 60 && Math.abs(dy) < Math.abs(dx) * 0.7 && Date.now() - gt < 800){
+    undo();  // 右スワイプ → 戻る
+    return;
+  }
+  if(Math.abs(dx) < 12 && Math.abs(dy) < 12){  // タップ
+    if(phase === "q") showAnswer();
+    else if(phase === "a-armed") judge(e.clientX >= window.innerWidth / 2);
+  }
+});
+mainEl.addEventListener("pointercancel", ()=>{ gOn = false; });
 
 /* 設定 */
 function renderSettings(){

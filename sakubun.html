@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#faf7f2">
+<title>中国語 作文問題集</title>
+<style>
+:root{--bg:#faf7f2;--card:#fff;--ink:#222;--sub:#8a8378;--accent:#8a1f1f;
+      --teal:#1f6f6a;--ok:#2e7d32;--ng:#b93c3c;--line:#e5ddd0;}
+@media(prefers-color-scheme:dark){
+ :root{--bg:#161412;--card:#232019;--ink:#ece7de;--sub:#948c7e;--line:#3a352c;--teal:#5db8b0;}
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--ink);touch-action:manipulation;
+     user-select:none;-webkit-user-select:none;
+     font-family:"Hiragino Sans","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif;}
+.zh{font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;}
+#app{height:100dvh;display:flex;flex-direction:column;}
+header{display:flex;align-items:center;justify-content:space-between;
+       padding:11px 15px;flex:0 0 auto;}
+#stats{font-size:13px;color:var(--sub);}
+#partBadge{font-size:11px;border-radius:99px;padding:2px 11px;margin-left:8px;
+           border:1px solid var(--accent);color:var(--accent);}
+#partBadge.A{border-color:var(--teal);color:var(--teal);}
+#gear{font-size:22px;background:none;border:none;color:var(--sub);padding:4px 8px;}
+main{flex:1 1 auto;position:relative;overflow:hidden;touch-action:none;}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;}
+.screen.show{display:flex;}
+
+/* 問題画面 */
+#qScreen{align-items:center;justify-content:center;padding:22px 20px 64px;}
+#qWrap{width:100%;max-width:600px;text-align:center;}
+#qId{font-size:12px;color:var(--sub);letter-spacing:.14em;margin-bottom:20px;}
+#qJa{font-size:clamp(20px,5.4vw,27px);font-weight:700;line-height:1.55;
+     text-wrap:balance;}
+#qChips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;}
+.chip{font-size:clamp(15px,4.4vw,20px);padding:7px 13px;border-radius:11px;
+      background:var(--card);border:1.5px solid var(--line);
+      color:var(--ink);line-height:1;}
+#qHint{position:absolute;bottom:18px;left:0;right:0;text-align:center;
+       font-size:12px;color:var(--sub);}
+
+/* 答え画面 */
+#aScreen{}
+#aBody{flex:1;display:flex;flex-direction:column;align-items:center;
+       justify-content:center;text-align:center;padding:20px;overflow-y:auto;
+       pointer-events:none;z-index:2;}
+#aInner{width:100%;max-width:620px;}
+#aId{font-size:12px;color:var(--sub);letter-spacing:.14em;margin-bottom:16px;}
+#aZh{font-size:clamp(22px,6vw,32px);font-weight:700;line-height:1.5;
+     word-break:break-word;}
+#aPy{font-size:clamp(14px,4vw,19px);color:var(--accent);margin-top:14px;
+     line-height:1.5;}
+#aJa{font-size:clamp(13px,3.6vw,16px);color:var(--sub);margin-top:14px;
+     line-height:1.6;}
+#aState{font-size:12px;color:var(--sub);margin-top:20px;letter-spacing:.2em;}
+#zones{position:absolute;inset:0;display:flex;z-index:1;}
+.zone{flex:1;display:flex;flex-direction:column;align-items:center;
+      justify-content:flex-end;padding-bottom:26px;gap:4px;
+      font-size:40px;font-weight:700;opacity:0;transition:opacity .25s;}
+.zone small{font-size:12px;font-weight:400;letter-spacing:.1em;}
+#zoneNg{color:var(--ng);background:linear-gradient(to right,rgba(185,60,60,.10),transparent);}
+#zoneOk{color:var(--ok);background:linear-gradient(to left,rgba(46,125,50,.12),transparent);}
+#zones.armed .zone{opacity:.92;}
+
+/* 完了 */
+#doneScreen{align-items:center;justify-content:center;gap:16px;text-align:center;padding:26px;}
+#doneScreen h2{font-size:25px;}
+#doneScreen p{color:var(--sub);font-size:14px;line-height:1.8;}
+
+/* 設定 */
+#settings{position:absolute;inset:0;background:var(--bg);z-index:10;display:none;
+          overflow-y:auto;padding:20px 20px 44px;}
+#settings.show{display:block;}
+#settings h2{font-size:15px;margin:20px 0 10px;color:var(--accent);}
+#settings h2:first-child{margin-top:2px;}
+.segwrap{display:flex;gap:8px;}
+.seg{flex:1;padding:13px 8px;border:1.5px solid var(--line);border-radius:12px;
+     background:var(--card);color:var(--ink);font-size:13px;line-height:1.4;text-align:center;}
+.seg.on{border-color:var(--accent);color:var(--accent);font-weight:700;}
+.seg small{display:block;font-size:11px;color:var(--sub);margin-top:3px;}
+.seg.on small{color:var(--accent);}
+#resetBtn{width:100%;margin-top:4px;padding:13px;border:1.5px solid var(--ng);
+          border-radius:12px;background:none;color:var(--ng);font-size:14px;}
+#closeBtn{width:100%;margin-top:24px;padding:15px;border:none;border-radius:14px;
+          background:var(--accent);color:#fff;font-size:16px;font-weight:700;}
+.note{font-size:12px;color:var(--sub);line-height:1.7;margin-top:10px;}
+button{font-family:inherit;}
+</style>
+</head>
+<body>
+<div id="app">
+ <header>
+  <div id="stats">残り <b id="remain">-</b> / <b id="total">-</b> 問<span id="partBadge"></span></div>
+  <button id="gear" aria-label="設定">⚙</button>
+ </header>
+ <main>
+  <div id="qScreen" class="screen">
+   <div id="qWrap">
+    <div id="qId"></div>
+    <div id="qJa"></div>
+    <div id="qChips" style="display:none"></div>
+   </div>
+   <div id="qHint">紙に書いたら画面をタップ　／　右へスワイプで戻る</div>
+  </div>
+  <div id="aScreen" class="screen">
+   <div id="zones">
+    <div class="zone" id="zoneNg">✗<small>もう一度</small></div>
+    <div class="zone" id="zoneOk">◯<small>できた</small></div>
+   </div>
+   <div id="aBody"><div id="aInner">
+    <div id="aId"></div>
+    <div id="aZh" class="zh"></div>
+    <div id="aPy"></div>
+    <div id="aJa"></div>
+    <div id="aState"></div>
+   </div></div>
+  </div>
+  <div id="doneScreen" class="screen">
+   <h2>🎉 全問クリア！</h2>
+   <p>このパートの全問に「できた」を付けました。<br>
+      設定からパートを切り替えるか、<br>進捗をリセットしてもう一周しましょう。</p>
+   <button class="seg" style="max-width:220px" onclick="openSettings()">設定を開く</button>
+  </div>
+  <div id="settings">
+   <h2>パート</h2>
+   <div class="segwrap">
+    <button class="seg" id="segA">パートA<small>日本語 → 中国語</small></button>
+    <button class="seg" id="segB">パートB<small>ピンイン並び替え → 中国語</small></button>
+   </div>
+   <p class="note">未完了の問題を番号順に出題します。答え画面で「◯できた」を付けると出題対象から外れ、「✗もう一度」は残ります。</p>
+   <h2>進捗</h2>
+   <button id="resetBtn">このパートの進捗をリセット</button>
+   <button id="closeBtn">とじる</button>
+  </div>
+ </main>
+</div>
+<script>
+const ITEMS = [{"part":"A","id":"A-1","q":"これは私の弟の本ではなく、図書館の辞書です。","zh":"这不是我弟弟的书，是图书馆的词典。","py":"Zhè bú shì wǒ dìdi de shū, shì túshūguǎn de cídiǎn.","ja":""},{"part":"A","id":"A-2","q":"私は日本の留学生で、彼も速成学院一年生の学生です。","zh":"我是日本留学生，他也是速成学院一年级的学生。","py":"Wǒ shì Rìběn liúxuéshēng, tā yě shì sùchéng xuéyuàn yī niánjí de xuésheng.","ja":""},{"part":"A","id":"A-3","q":"図書館の二階にはコピー機と辞書があるが、パソコンはない。","zh":"图书馆二楼有复印机和词典，但是没有电脑。","py":"Túshūguǎn èr lóu yǒu fùyìnjī hé cídiǎn, dànshì méiyǒu diànnǎo.","ja":""},{"part":"A","id":"A-4","q":"週末あなたは暇がありますか。私は友達と映画を見に行きたい。","zh":"周末你有空儿吗？我想和朋友一起去看电影。","py":"Zhōumò nǐ yǒu kòngr ma? Wǒ xiǎng hé péngyou yìqǐ qù kàn diànyǐng.","ja":""},{"part":"A","id":"A-5","q":"今日は何月何日ですか。来年の端午の節句は6月19日です。","zh":"今天几月几号？明年端午节是六月十九号。","py":"Jīntiān jǐ yuè jǐ hào? Míngnián Duānwǔ Jié shì liù yuè shíjiǔ hào.","ja":""},{"part":"A","id":"A-6","q":"私は地下鉄で図書館へあなたを探しに行くから、そこで待っていて。","zh":"我坐地铁去图书馆找你，你在那儿等吧。","py":"Wǒ zuò dìtiě qù túshūguǎn zhǎo nǐ, nǐ zài nàr děng ba.","ja":""},{"part":"A","id":"A-7","q":"眼鏡をかけている女の子は私のいとこで、彼女も理系の学生だ。","zh":"戴眼镜的女孩子是我表妹，她也是理科生。","py":"Dài yǎnjìng de nǚháizi shì wǒ biǎomèi, tā yě shì lǐkēshēng.","ja":""},{"part":"A","id":"A-8","q":"私は昨日ケーキ二個と魚三匹を買って、全部食べ終えた。","zh":"我昨天买了两块蛋糕和三条鱼，都吃完了。","py":"Wǒ zuótiān mǎile liǎng kuài dàngāo hé sān tiáo yú, dōu chīwán le.","ja":""},{"part":"A","id":"A-9","q":"私が最も行きたいあの大学は日本で非常に有名だ。","zh":"我最想上的那所大学在日本非常有名。","py":"Wǒ zuì xiǎng shàng de nà suǒ dàxué zài Rìběn fēicháng yǒumíng.","ja":""},{"part":"A","id":"A-10","q":"私はよく通学の道で英単語を暗記する。","zh":"我常常在上学的路上背英语单词。","py":"Wǒ chángcháng zài shàngxué de lùshang bèi Yīngyǔ dāncí.","ja":""},{"part":"A","id":"A-11","q":"あなたはいつ北京に着いたのですか。私は一度も行ったことがない。","zh":"你是什么时候到北京的？我一次也没去过。","py":"Nǐ shì shénme shíhou dào Běijīng de? Wǒ yí cì yě méi qùguo.","ja":""},{"part":"A","id":"A-12","q":"あなたはフランス語が話せますか。この字はどう書くのか教えてください。","zh":"你会说法语吗？请问这个字怎么写？","py":"Nǐ huì shuō Fǎyǔ ma? Qǐngwèn zhè ge zì zěnme xiě?","ja":""},{"part":"A","id":"A-13","q":"私たちはまず故宮を見学し、それから太古里へ買い物に行く。","zh":"我们先去参观故宫，然后再去太古里买东西。","py":"Wǒmen xiān qù cānguān Gùgōng, ránhòu zài qù Tàigǔlǐ mǎi dōngxi.","ja":""},{"part":"A","id":"A-14","q":"免許を取ったので、私は車を運転して海辺へドライブに行きたい。","zh":"有了驾照，我要开车去海边儿兜风了。","py":"Yǒule jiàzhào, wǒ yào kāichē qù hǎibiānr dōufēng le.","ja":""},{"part":"A","id":"A-15","q":"この試合は本当に素晴らしかった、あなたは見ましたか。","zh":"这场比赛太精彩了，你看了没有？","py":"Zhè chǎng bǐsài tài jīngcǎi le, nǐ kànle méiyǒu?","ja":""},{"part":"A","id":"A-16","q":"王さんは冷蔵庫を開けて、コーラを一本取り出して私にくれた。","zh":"老王打开冰箱，拿出一瓶可乐给我。","py":"Lǎo-Wáng dǎkāi bīngxiāng, náchū yì píng kělè gěi wǒ.","ja":""},{"part":"A","id":"A-17","q":"このレストランは味が良いが、私は少し疲れた。","zh":"这家餐馆味道不错，不过我有点儿累。","py":"Zhè jiā cānguǎn wèidao búcuò, búguò wǒ yǒudiǎnr lèi.","ja":""},{"part":"A","id":"A-18","q":"廊下を走るな、退勤したらスーパーへ一回行ってきて。","zh":"别在走廊里跑，下了班去一趟超市。","py":"Bié zài zǒulángli pǎo, xiàle bān qù yí tàng chāoshì.","ja":""},{"part":"A","id":"A-19","q":"先生、前回の授業では宿題を出しませんでしたよね。私たちに説明してください。","zh":"老师，上节课没有留作业吧？给我们讲一下吧。","py":"Lǎoshī, shàng jié kè méiyǒu liú zuòyè ba? Gěi wǒmen jiǎng yíxià ba.","ja":""},{"part":"A","id":"A-20","q":"現金で払いますか、それともカードですか。電子決済は現金よりずっと便利です。","zh":"你付现金还是刷卡？电子支付比现金方便多了。","py":"Nǐ fù xiànjīn háishi shuākǎ? Diànzǐ zhīfù bǐ xiànjīn fāngbiàn duōle.","ja":""},{"part":"A","id":"A-21","q":"こんなに遅くなった、彼はまた朝寝坊したから来られないだろう。","zh":"这么晚了，他又睡懒觉了，不能来了吧。","py":"Zhème wǎn le, tā yòu shuì lǎnjiào le, bù néng lái le ba.","ja":""},{"part":"A","id":"A-22","q":"あの人気レストランは予約が必要だから、タクシーで行こう。","zh":"去那家网红餐厅吃饭得预约，我们打车去吧。","py":"Qù nà jiā wǎnghóng cāntīng chīfàn děi yùyuē, wǒmen dǎchē qù ba.","ja":""},{"part":"A","id":"A-23","q":"彼の父は浙江人だ、もしバスで行くなら、なんて面倒だろう！","zh":"他爸爸浙江人，如果坐公共汽车去，多麻烦啊！","py":"Tā bàba Zhèjiāngrén, rúguǒ zuò gōnggòng qìchē qù, duō máfan a!","ja":""},{"part":"A","id":"A-24","q":"先生は私に教科書を出させて、少し勉強させた。","zh":"老师叫我拿出课本，让我学习一下。","py":"Lǎoshī jiào wǒ náchū kèběn, ràng wǒ xuéxí yíxià.","ja":""},{"part":"A","id":"A-25","q":"もしあの日熱が出ていなければ、私はきっと満点が取れた。","zh":"要是那天没发烧，我就一定能考满分。","py":"Yàoshi nà tiān méi fāshāo, wǒ jiù yídìng néng kǎo mǎnfēn.","ja":""},{"part":"A","id":"A-26","q":"聞けば中国語は『三体』よりずっと難しく、こんなに多くの単語は覚えられない。","zh":"听说中文比《三体》难多了，这么多生词我记不住。","py":"Tīngshuō Zhōngwén bǐ «Sāntǐ» nánduōle, zhème duō shēngcí wǒ jìbuzhù.","ja":""},{"part":"A","id":"A-27","q":"私は張愛玲という作家がとても好きだ、彼女の小説を読んだことがありますか。","zh":"我很喜欢张爱玲这个作家，你看过她的小说吗？","py":"Wǒ hěn xǐhuan Zhāng Àilíng zhè ge zuòjiā, nǐ kànguo tā de xiǎoshuō ma?","ja":""},{"part":"A","id":"A-28","q":"時間になったのに会議はどうしてまだ始まらないの。けっこう長く待った。","zh":"到时间了，会议怎么还没开始？我们等了挺长时间了。","py":"Dào shíjiān le, huìyì zěnme hái méi kāishǐ? Wǒmen děngle tǐng cháng shíjiān le.","ja":""},{"part":"A","id":"A-29","q":"あなたの妹は今年いくつ？このプールの一番深いところはどのくらいの深さ？","zh":"你妹妹今年多大？这个游泳池最深的地方有多深？","py":"Nǐ mèimei jīnnián duō dà? Zhè ge yóuyǒngchí zuì shēn de dìfang yǒu duō shēn?","ja":""},{"part":"A","id":"A-30","q":"私たちは毎日太極拳をします、あなたも習いたいですか。","zh":"我们每天打太极拳，你也想学吗？","py":"Wǒmen měitiān dǎ tàijíquán, nǐ yě xiǎng xué ma?","ja":""},{"part":"B","id":"B-1","chips":["Běichuān","de","duìwài","Hànyǔ","shì","Tā","xì","xìng","xuésheng"],"zh":"她姓北川，是对外汉语系的学生。","py":"Tā xìng Běichuān, shì duìwài Hànyǔ xì de xuésheng.","ja":"彼女は北川という姓で、対外漢語系の学生だ。"},{"part":"B","id":"B-2","chips":["běn","běn","bú","nà","shū","Wǒ","yào","yào","zhè"],"zh":"我要这本书，不要那本。","py":"Wǒ yào zhè běn shū, bú yào nà běn.","ja":"私はこの本が欲しくて、あの本は要らない。"},{"part":"B","id":"B-3","chips":["Dàlóu","dōngbianr","ge","gōngyuán","guǎngchǎng","shì","xībianr","yí","yǒu"],"zh":"大楼东边儿是广场，西边儿有一个公园。","py":"Dàlóu dōngbianr shì guǎngchǎng, xībianr yǒu yí ge gōngyuán.","ja":"ビルの東側は広場で、西側に公園が一つある。"},{"part":"B","id":"B-4","chips":["de","hē","Nà","nǐ","shéi","shénme","shì","xiǎng","yǐnliào","yǔsǎn"],"zh":"那是谁的雨伞？你想喝什么饮料？","py":"Nà shì shéi de yǔsǎn? Nǐ xiǎng hē shénme yǐnliào?","ja":"あれは誰の傘？あなたは何の飲み物を飲みたい？"},{"part":"B","id":"B-5","chips":["nǎr","ne","nǐ","túshūguǎnli","Wǒ","xiànzài","zài","zài"],"zh":"我在图书馆里，你现在在哪儿呢？","py":"Wǒ zài túshūguǎnli, nǐ xiànzài zài nǎr ne?","ja":"私は図書館にいる、あなたは今どこにいるの？"},{"part":"B","id":"B-6","chips":["de","jiànzhù","móxíng","ná","nàr","qù","tā","Wǒ","Xiǎo-Hú","zuò"],"zh":"我去小胡那儿拿他做的建筑模型。","py":"Wǒ qù Xiǎo-Hú nàr ná tā zuò de jiànzhù móxíng.","ja":"私は胡さんのところへ彼が作った建築模型を取りに行く。"},{"part":"B","id":"B-7","chips":["fābiǎole","hěn","lùnwén","piān","qùnián","sān","Tā","yǒumíng"],"zh":"他去年发表了三篇论文，很有名。","py":"Tā qùnián fābiǎole sān piān lùnwén, hěn yǒumíng.","ja":"彼は去年論文を三篇発表して、とても有名だ。"},{"part":"B","id":"B-8","chips":["dōu","Guǎngdōngcài","hé","hěn","Shànghǎicài","Sìchuāncài","wǒ","xǐhuan"],"zh":"上海菜、四川菜和广东菜，我都很喜欢。","py":"Shànghǎicài, Sìchuāncài hé Guǎngdōngcài, wǒ dōu hěn xǐhuan.","ja":"上海料理、四川料理と広東料理を、私はどれも好きだ。"},{"part":"B","id":"B-9","chips":["bú","dǎ","dào","de","de","diànhuà","dìng","jīntiān","shì","shì","Tā","zuòr"],"zh":"她是打电话订的座儿，不是今天到的。","py":"Tā shì dǎ diànhuà dìng de zuòr, bú shì jīntiān dào de.","ja":"彼女は電話で席を予約したので、今日着いたのではない。"},{"part":"B","id":"B-10","chips":["bu","de","duōshao","èrhú","hàomǎ","huì","huì","lā","shì","shǒujī","Tā","tā"],"zh":"他的手机号码是多少？他会不会拉二胡？","py":"Tā de shǒujī hàomǎ shì duōshao? Tā huì bu huì lā èrhú?","ja":"彼の携帯番号は何番？彼は二胡が弾けるかどうか。"},{"part":"B","id":"B-11","chips":["biàn","de","gāngcái","huà","ma","méi","néng","Nǐ","shuō","shuō","tīngqīngchu","wǒ","yí","zài"],"zh":"你刚才说的话我没听清楚，能再说一遍吗？","py":"Nǐ gāngcái shuō de huà wǒ méi tīngqīngchu, néng zài shuō yí biàn ma?","ja":"さっき言った話をはっきり聞き取れなかった、もう一度言ってもらえますか。"},{"part":"B","id":"B-12","chips":["bù","fùmǔ","ge","hé","jiàn","qù","rén","shāngliang","shì","Wǒ","wǒ","xiǎng","yào","yí","zhè"],"zh":"我不想和父母商量这件事，我要一个人去。","py":"Wǒ bù xiǎng hé fùmǔ shāngliang zhè jiàn shì, wǒ yào yí ge rén qù.","ja":"このことを両親と相談したくない、一人で行きたい。"},{"part":"B","id":"B-13","chips":["gěi","hěn","kuǎnshì","mǎi","māma","Nà","qúnzi","tiáo","tiáo","wǒ","xiǎng","xīnyǐng","yì"],"zh":"那条裙子款式很新颖，我想给妈妈买一条。","py":"Nà tiáo qúnzi kuǎnshì hěn xīnyǐng, wǒ xiǎng gěi māma mǎi yì tiáo.","ja":"あのスカートはデザインが斬新だ、母に一着買ってあげたい。"},{"part":"B","id":"B-14","chips":["bié","chénjiù","de","guāndiǎn","làngfèi","le","piān","shíjiān","wénzhāng","yǒudiǎnr","Zhè"],"zh":"这篇文章的观点有点儿陈旧，别浪费时间了。","py":"Zhè piān wénzhāng de guāndiǎn yǒudiǎnr chénjiù, bié làngfèi shíjiān le.","ja":"この文章の観点は少し古い、時間を無駄にするな。"},{"part":"B","id":"B-15","chips":["ba","biàn","bù","diànyǐng","kànguo","kànguo","liù","méi","Nà","nǐ","wǒ","wǔ"],"zh":"那部电影我看过五、六遍，你没看过吧？","py":"Nà bù diànyǐng wǒ kànguo wǔ, liù biàn, nǐ méi kànguo ba?","ja":"あの映画を私は五、六回見たことがある、あなたは見たことがないでしょう？"},{"part":"B","id":"B-16","chips":["méiyǒu","nàme","nǐ","rènao","shìzhōngxīn","xǐhuan","zěnme","Zhèli","zhème"],"zh":"这里没有市中心那么热闹，你怎么这么喜欢？","py":"Zhèli méiyǒu shìzhōngxīn nàme rènao, nǐ zěnme zhème xǐhuan?","ja":"ここは市の中心部ほどにぎやかではない、なぜこんなに好きなの？"},{"part":"B","id":"B-17","chips":["děi","fù","háishi","jiāofèi","ná","nǐ","Wēixìn","Wǒmen","xiān","xiànjīn","yào","zài","zhīfù"],"zh":"我们得先交费再拿药，你付现金还是微信支付？","py":"Wǒmen děi xiān jiāofèi zài ná yào, nǐ fù xiànjīn háishi Wēixìn zhīfù?","ja":"まず費用を払って薬を受け取らないと、現金それともWeChat決済？"},{"part":"B","id":"B-18","chips":["bù","bù","dìtiě","Jīntiān","le","le","néng","qù","wǒ","xiǎoxīn","yòu","zhàn","zuò","zuòguò"],"zh":"今天又不小心坐过站了，我不能坐地铁去了。","py":"Jīntiān yòu bù xiǎoxīn zuòguò zhàn le, wǒ bù néng zuò dìtiě qù le.","ja":"今日はまたうっかり駅を乗り過ごした、地下鉄で行けなくなった。"},{"part":"B","id":"B-19","chips":["bú","chēpiào","ge","jiālirén","jiào","Lièchēyuán","náchū","ràng","rén","wǒ","wǒ","yí","zhù"],"zh":"列车员叫我拿出车票，家里人不让我一个人住。","py":"Lièchēyuán jiào wǒ náchū chēpiào, jiālirén bú ràng wǒ yí ge rén zhù.","ja":"車掌は私に切符を出させ、家族は私が一人で住むことを許さない。"},{"part":"B","id":"B-20","chips":["ba","bù","de","fǎnduì","huà","jiù","juédìng","nǐ","Rúguǒ","zánmen","zhème"],"zh":"如果你不反对的话，咱们就这么决定吧。","py":"Rúguǒ nǐ bù fǎnduì de huà, zánmen jiù zhème juédìng ba.","ja":"もしあなたが反対しないなら、私たちはこう決めよう。"},{"part":"B","id":"B-21","chips":["a","duō","huānyíng","kàndào","kě'ài","tiàoqǐlai","wǒ","wǒ","Xiǎogǒu"],"zh":"小狗看到我，跳起来欢迎我，多可爱啊！","py":"Xiǎogǒu kàndào wǒ, tiàoqǐlai huānyíng wǒ, duō kě'ài a!","ja":"子犬は私を見て跳び上がって歓迎した、なんてかわいいのだろう！"},{"part":"B","id":"B-22","chips":["bìng","diǎnr","hǎo","le","le","ma","nǐ","qián","tiān","Tīngshuō","xiànzài","xiē"],"zh":"听说你前些天病了，现在好点儿了吗？","py":"Tīngshuō nǐ qián xiē tiān bìng le, xiànzài hǎo diǎnr le ma?","ja":"聞けばあなたは先日病気になったそうだ、今は少し良くなった？"},{"part":"B","id":"B-23","chips":["chéngshì","de","fēicháng","lìshǐ","qù","tǐng","wǒ","Xī'ān","xiǎng","yōujiǔ","zhè","zuò"],"zh":"西安这座城市历史非常悠久，我挺想去的。","py":"Xī'ān zhè zuò chéngshì lìshǐ fēicháng yōujiǔ, wǒ tǐng xiǎng qù de.","ja":"西安という都市は歴史が非常に長い、私はけっこう行きたい。"},{"part":"B","id":"B-24","chips":["běn","duō","duō","jìbuzhù","nán","Shēngcí","shū","wǒ","yǒu","zhè","zhème"],"zh":"生词这么多，我记不住，这本书有多难？","py":"Shēngcí zhème duō, wǒ jìbuzhù, zhè běn shū yǒu duō nán?","ja":"単語がこんなに多くて覚えられない、この本はどのくらい難しい？"},{"part":"B","id":"B-25","chips":["dōu","duō","Hànyǔ","hěn","hěn","liúxuéshēng","tāmen","Wǒmen","xǐhuan","xué","xuéyuàn","yǒu"],"zh":"我们学院有很多留学生，他们都很喜欢学汉语。","py":"Wǒmen xuéyuàn yǒu hěn duō liúxuéshēng, tāmen dōu hěn xǐhuan xué Hànyǔ.","ja":"私たちの学院にはたくさんの留学生がいて、みな中国語を学ぶのが好きだ。"},{"part":"B","id":"B-26","chips":["ge","ge","jiā","lǎnjiào","Shàng","shàngwǔ","shuìle","wǒ","xīngqītiān","yí","zài"],"zh":"上个星期天我在家睡了一个上午懒觉。","py":"Shàng ge xīngqītiān wǒ zài jiā shuìle yí ge shàngwǔ lǎnjiào.","ja":"先週の日曜日、私は家で午前中いっぱい朝寝坊した。"},{"part":"B","id":"B-27","chips":["bú","de","de","ge","kuān","le","nà","shūzhuō","tài","Wǒ","xiǎo","yào","yào","zhǎi"],"zh":"我要宽的书桌，不要窄的，那个太小了。","py":"Wǒ yào kuān de shūzhuō, bú yào zhǎi de, nà ge tài xiǎo le.","ja":"私は広い机が欲しくて、狭いのは要らない、あれは小さすぎる。"},{"part":"B","id":"B-28","chips":["chīguo","de","jiàohuājī","ma","méi","nǐ","Wǒ","zěnme","zhèngzōng","zhīdào","zuò"],"zh":"我没吃过正宗的叫花鸡，你知道怎么做吗？","py":"Wǒ méi chīguo zhèngzōng de jiàohuājī, nǐ zhīdào zěnme zuò ma?","ja":"私は本場の叫花鶏を食べたことがない、作り方を知っていますか。"},{"part":"B","id":"B-29","chips":["bu","ge","hē","hē","hē","kāfēi","le","Nǐ","píngshí","shíjiān","tài","wǎn","zhè"],"zh":"你平时喝不喝咖啡？这个时间喝太晚了。","py":"Nǐ píngshí hē bu hē kāfēi? Zhè ge shíjiān hē tài wǎn le.","ja":"あなたはふだんコーヒーを飲みますか。この時間に飲むのは遅すぎる。"},{"part":"B","id":"B-30","chips":["dāying","fēngfù","gěi","hěn","jiàoshòu","jīngyàn","Nà","tā","tuījiànxìn","wèi","wǒ","xiě"],"zh":"那位教授经验很丰富，他答应给我写推荐信。","py":"Nà wèi jiàoshòu jīngyàn hěn fēngfù, tā dāying gěi wǒ xiě tuījiànxìn.","ja":"あの教授は経験が豊富で、私に推薦状を書くと承諾してくれた。"}];
+const LS = "cnsakubun_v1";
+
+let st = {part:"A", done:{A:{},B:{}}};
+try{
+  const s = JSON.parse(localStorage.getItem(LS));
+  if(s && s.done){ st = Object.assign(st, s); st.done.A=st.done.A||{}; st.done.B=st.done.B||{}; }
+}catch(e){}
+function save(){ localStorage.setItem(LS, JSON.stringify(st)); }
+
+const $ = id => document.getElementById(id);
+const partItems = () => ITEMS.filter(x => x.part === st.part);
+const remaining = () => partItems().filter(x => !st.done[st.part][x.id]);
+
+let cur = null, phase = "q", armTimer = null, hist = [];
+
+function showScreen(id){
+  ["qScreen","aScreen","doneScreen"].forEach(s => $(s).classList.toggle("show", s===id));
+}
+function updateHeader(){
+  $("remain").textContent = remaining().length;
+  $("total").textContent = partItems().length;
+  const b = $("partBadge");
+  b.textContent = st.part === "A" ? "日→中" : "拼→字";
+  b.className = st.part === "A" ? "A" : "";
+}
+function next(){
+  updateHeader();
+  const rem = remaining();
+  if(!rem.length){ showScreen("doneScreen"); phase="done"; return; }
+  cur = rem[0];
+  phase = "q";
+  $("qId").textContent = cur.id + "　" + (st.part==="A" ? "日本語 → 中国語" : "ピンイン → 中国語");
+  if(st.part === "A"){
+    $("qJa").style.display = "";
+    $("qChips").style.display = "none";
+    $("qJa").textContent = cur.q;
+  }else{
+    $("qJa").style.display = "none";
+    $("qChips").style.display = "flex";
+    $("qChips").innerHTML = cur.chips.map(c => '<span class="chip">'+c+'</span>').join("");
+  }
+  showScreen("qScreen");
+}
+function showAnswer(){
+  phase = "a";
+  $("aId").textContent = cur.id;
+  $("aZh").textContent = cur.zh;
+  $("aPy").textContent = cur.py;
+  $("aJa").textContent = cur.ja || "";
+  $("aState").textContent = st.done[st.part][cur.id] ? "済：できた" : "";
+  const z = $("zones"); z.classList.remove("armed");
+  clearTimeout(armTimer);
+  armTimer = setTimeout(()=>{ z.classList.add("armed"); phase="a-armed"; }, 500);
+  showScreen("aScreen");
+}
+function judge(ok){
+  hist.push({id: cur.id, prev: !!st.done[st.part][cur.id]});
+  if(hist.length > 40) hist.shift();
+  st.done[st.part][cur.id] = ok;
+  save();
+  next();
+}
+function undo(){
+  if(phase==="a" || phase==="a-armed"){ clearTimeout(armTimer); phase="q"; showScreen("qScreen"); return; }
+  if(!hist.length) return;
+  const h = hist.pop();
+  st.done[st.part][h.id] = h.prev;
+  save();
+  cur = ITEMS.find(x => x.id === h.id);
+  updateHeader();
+  showAnswer();
+}
+
+/* タップ / スワイプ（右へスワイプで戻る） */
+let gx=0, gy=0, gt=0, gOn=false;
+const mainEl = document.querySelector("main");
+mainEl.addEventListener("pointerdown", e=>{
+  if($("settings").classList.contains("show")) return;
+  gOn=true; gx=e.clientX; gy=e.clientY; gt=Date.now();
+});
+mainEl.addEventListener("pointerup", e=>{
+  if(!gOn) return; gOn=false;
+  if($("settings").classList.contains("show")) return;
+  const dx=e.clientX-gx, dy=e.clientY-gy;
+  if(dx>60 && Math.abs(dy)<Math.abs(dx)*0.7 && Date.now()-gt<800){ undo(); return; }
+  if(Math.abs(dx)<12 && Math.abs(dy)<12){
+    if(phase==="q") showAnswer();
+    else if(phase==="a-armed") judge(e.clientX >= window.innerWidth/2);
+  }
+});
+mainEl.addEventListener("pointercancel", ()=>{ gOn=false; });
+
+/* 設定 */
+function renderSettings(){
+  $("segA").classList.toggle("on", st.part==="A");
+  $("segB").classList.toggle("on", st.part==="B");
+}
+function openSettings(){ renderSettings(); $("settings").classList.add("show"); }
+$("gear").onclick = openSettings;
+$("segA").onclick = ()=>{ st.part="A"; save(); renderSettings(); };
+$("segB").onclick = ()=>{ st.part="B"; save(); renderSettings(); };
+$("resetBtn").onclick = ()=>{
+  const nm = st.part==="A" ? "日本語→中国語" : "ピンイン→中国語";
+  if(confirm("パート「"+nm+"」の進捗をリセットしますか？")){
+    st.done[st.part] = {}; hist = []; save(); renderSettings();
+  }
+};
+$("closeBtn").onclick = ()=>{ $("settings").classList.remove("show"); hist=[]; next(); };
+
+/* Wake Lock */
+let wl=null;
+async function reqWake(){ try{ if("wakeLock" in navigator) wl=await navigator.wakeLock.request("screen"); }catch(e){} }
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") reqWake(); });
+document.addEventListener("pointerdown", reqWake, {once:true});
+
+next();
+</script>
+</body>
+</html>
